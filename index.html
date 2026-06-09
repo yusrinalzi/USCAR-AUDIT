@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USCAR Audit System - USCAR 21 & 38</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #02453c;
+    --primary-light: #035a4e;
+    --primary-dark: #012e28;
+    --accent: #04a086;
+    --accent-light: #05c4a5;
+    --white: #ffffff;
+    --bg: #f0f5f4;
+    --bg2: #e4eeed;
+    --text: #1a2e2b;
+    --text-light: #5a7570;
+    --border: #c0d8d4;
+    --danger: #c0392b;
+    --danger-light: #e74c3c;
+    --warning: #f39c12;
+    --success: #27ae60;
+    --yellow: #f1c40f;
+    --shadow: 0 2px 12px rgba(2,69,60,0.10);
+    --shadow-lg: 0 8px 32px rgba(2,69,60,0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* Login Page */
+  #loginPage { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--accent) 100%); justify-content: center; align-items: center; padding: 20px; }
+  .login-card { background: white; border-radius: 20px; padding: 48px 40px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .logo-icon { width: 72px; height: 72px; background: var(--primary); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .login-logo .logo-icon svg { fill: white; }
+  .login-logo h1 { font-size: 26px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+  .login-logo p { color: var(--text-light); font-size: 13px; margin-top: 4px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .form-group input { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .form-group input:focus { border-color: var(--primary); }
+  .btn-login { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 8px; }
+  .btn-login:hover { background: var(--primary-light); }
+  .guest-link { text-align: center; margin-top: 18px; }
+  .guest-link a { color: var(--accent); font-size: 13px; text-decoration: none; font-weight: 600; cursor: pointer; }
+  .login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+  /* Navbar */
+  .navbar { background: var(--primary); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+  .navbar-brand { color: white; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px; }
+  .navbar-nav { display: flex; gap: 4px; }
+  .nav-link { color: rgba(255,255,255,0.8); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; background: none; }
+  .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.18); }
+  .nav-user { color: rgba(255,255,255,0.9); font-size: 13px; display: flex; align-items: center; gap: 10px; }
+  .nav-user .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; }
+  .btn-logout { color: rgba(255,255,255,0.7); background: none; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .btn-logout:hover { background: rgba(255,255,255,0.15); color: white; }
+
+  /* Page Content */
+  .page-content { flex: 1; padding: 28px 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+  .page-title { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  
+  /* Dashboard Layout */
+  .dashboard-main { display: grid; grid-template-columns: 1fr 360px; gap: 24px; margin-bottom: 28px; }
+  .charts-area { display: flex; flex-direction: column; gap: 24px; }
+  .chart-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+  .chart-card h3 { font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .chart-wrap { position: relative; height: 260px; }
+  
+  /* Note Panel */
+  .note-panel { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border-left: 4px solid var(--warning); height: fit-content; }
+  .note-panel h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .note-content { font-size: 12px; line-height: 1.7; color: var(--text); }
+  .highlight-yellow { background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; font-weight: 600; color: #856404; }
+  
+  /* Filter */
+  .layer-filter { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: white; padding: 12px 20px; border-radius: 12px; box-shadow: var(--shadow); }
+  .layer-filter span { font-size: 13px; font-weight: 600; color: var(--primary); }
+  .layer-btn { padding: 6px 16px; border-radius: 20px; border: 2px solid var(--primary); background: white; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .layer-btn:hover { background: var(--bg2); }
+  .layer-btn.active { background: var(--primary); color: white; }
+  
+  /* KPI Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi-card { background: white; border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); border-top: 4px solid var(--primary); }
+  .kpi-card .kpi-val { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .kpi-card .kpi-lbl { font-size: 11px; color: var(--text-light); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-card .kpi-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  
+  /* Tables */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { background: var(--primary); color: white; padding: 10px 14px; text-align: left; font-weight: 600; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--bg2); }
+  .data-table tr:hover td { background: var(--bg); cursor: pointer; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-open { background: #fdecea; color: var(--danger); }
+  .badge-closed { background: #e8f5e9; color: var(--success); }
+  .badge-done { background: #e3f2fd; color: #1565c0; }
+  .badge-ofi { background: #fff8e1; color: #f57f17; }
+  
+  /* Audit Form */
+  .form-section { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field label { font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-field .field-val { font-size: 14px; font-weight: 500; color: var(--primary); background: var(--bg); padding: 8px 12px; border-radius: 8px; }
+  .form-field input, .form-field select, .form-field textarea { padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--primary); }
+  .form-field textarea { min-height: 70px; resize: vertical; }
+  
+  /* Question Items */
+  .questions-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+  .question-item { background: white; border-radius: 12px; padding: 16px; box-shadow: var(--shadow); border-left: 4px solid var(--border); transition: all 0.2s; }
+  .question-item.ok { border-left-color: var(--success); background: #f1fdf5; }
+  .question-item.nc { border-left-color: var(--danger); background: #fdf1f0; }
+  .q-header { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .q-clause { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--bg); padding: 2px 8px; border-radius: 4px; }
+  .q-mode { font-size: 11px; color: var(--text-light); }
+  .q-text { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
+  .q-actions { display: flex; gap: 16px; margin-top: 12px; }
+  .q-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .q-check input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+  .ok-label { color: var(--success); font-weight: 600; }
+  .nc-label { color: var(--danger); font-weight: 600; }
+  .nc-details { display: none; margin-top: 12px; padding: 12px; background: rgba(192,57,43,0.06); border-radius: 8px; }
+  .nc-details.show { display: block; }
+  .nc-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .nc-details-grid select, .nc-details-grid textarea, .nc-details-grid input { padding: 8px 10px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; width: 100%; }
+  .nc-details-grid textarea { grid-column: 1 / -1; min-height: 60px; }
+  .img-upload-btn { padding: 8px 14px; border: 2px dashed var(--danger-light); border-radius: 8px; background: white; color: var(--danger); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-top: 8px; }
+  
+  /* Spec Table */
+  .spec-table { margin-top: 12px; padding: 12px; background: var(--bg2); border-radius: 8px; }
+  .spec-table table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .spec-table th, .spec-table td { padding: 6px 8px; border: 1px solid var(--border); text-align: left; }
+  .spec-table th { background: var(--primary); color: white; font-weight: 600; }
+  
+  /* Score Footer */
+  .score-footer { background: white; border-radius: 16px; padding: 20px 24px; box-shadow: var(--shadow); margin-top: 20px; }
+  .score-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 16px; }
+  .score-box { text-align: center; padding: 14px; border-radius: 10px; }
+  .score-box.applicable { background: var(--bg); }
+  .score-box.na { background: #f5f0ff; }
+  .score-box.ok { background: #f1fdf5; }
+  .score-box.nc { background: #fdf1f0; }
+  .score-box.score { background: var(--primary); color: white; }
+  .score-box .val { font-size: 28px; font-weight: 700; }
+  .score-box .lbl { font-size: 11px; margin-top: 2px; opacity: 0.8; }
+  .btn-submit { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+  .btn-submit:hover { background: var(--accent); }
+  
+  /* Follow-up NC */
+  .nc-card { background: white; border-radius: 14px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; border-left: 5px solid var(--warning); }
+  .nc-card.status-closed { border-left-color: var(--success); }
+  .nc-card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .nc-field { display: flex; flex-direction: column; gap: 3px; }
+  .nc-field .nf-lbl { font-size: 10px; font-weight: 600; color: var(--text-light); text-transform: uppercase; }
+  .nc-field .nf-val { font-size: 13px; color: var(--text); font-weight: 500; }
+  .nc-edit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .nc-textarea { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 6px; min-height: 60px; font-family: inherit; font-size: 13px; outline: none; }
+  .nc-select { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; font-family: inherit; outline: none; }
+  .nc-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .btn-sm { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-email { background: #1565c0; color: white; }
+  
+  .filter-bar { background: white; border-radius: 12px; padding: 14px 18px; box-shadow: var(--shadow); margin-bottom: 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .filter-bar label { font-size: 12px; font-weight: 600; color: var(--text-light); }
+  .filter-bar select, .filter-bar input { padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; outline: none; }
+  
+  .toast { position: fixed; bottom: 28px; right: 28px; padding: 14px 22px; border-radius: 10px; color: white; font-size: 14px; font-weight: 600; z-index: 9999; display: none; animation: slideUp 0.3s; }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  
+  .detail-panel { background: white; border-radius: 16px; padding: 20px; margin-top: 24px; box-shadow: var(--shadow); display: none; }
+  .detail-panel h4 { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+  
+  @media (max-width: 900px) {
+    .dashboard-main { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .nc-card-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="page active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg width="36" height="36" viewBox="0 0 36 36"><path d="M18 3L4 10v9c0 8.25 5.9 15.97 14 18 8.1-2.03 14-9.75 14-18V10L18 3zm-2 20l-4-4 1.41-1.41L16 20.17l7.59-7.59L25 14l-9 9z" fill="white"/></svg>
+      </div>
+      <h1>USCAR Audit System</h1>
+      <p>Layer Process Audit Management - USCAR 21 & 38</p>
+    </div>
+    <div class="form-group">
+      <label>User Name</label>
+      <input type="text" id="loginName" placeholder="Enter your name" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>ID Number</label>
+      <input type="password" id="loginId" placeholder="Enter your ID number" autocomplete="off">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Name / ID is not match. Please try again.</div>
+    <div class="guest-link">
+      <a href="#" onclick="doGuestLogin()">&#128100; Continue as Guest (View Only)</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appShell" class="page">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <svg width="24" height="24" viewBox="0 0 36 36" fill="white"><path d="M18 3L4 10v9c0 8.25 5.9 15.97 14 18 8.1-2.03 14-9.75 14-18V10L18 3z"/></svg>
+      USCAR Audit
+    </div>
+    <div class="navbar-nav">
+      <button class="nav-link active" onclick="showSection('dashboard')">&#128202; Dashboard</button>
+      <button class="nav-link" onclick="showSection('auditForm')" id="navAuditForm">&#128203; Audit Form</button>
+      <button class="nav-link" onclick="showSection('followup')">&#128270; Follow-up NC</button>
+    </div>
+    <div class="nav-user">
+      <div class="avatar" id="navAvatar">G</div>
+      <span id="navUserName">Guest</span>
+      <span id="guestBadge" style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;"></span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <div id="sectionDashboard" class="page-content" style="display:block;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div class="page-title" style="margin-bottom:0;">&#128202; Dashboard Overview</div>
+      <button onclick="loadAllData().then(()=>{setupAuditForm();renderFollowup();buildCharts();})" style="padding:6px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;">&#128260; Refresh</button>
+    </div>
+
+    <!-- Layer Filter -->
+    <div class="layer-filter">
+      <span>&#127775; Filter by:</span>
+      <button class="layer-btn active" data-layer="All" onclick="setLayerFilter('All')">Overall</button>
+      <button class="layer-btn" data-layer="USCAR 21" onclick="setLayerFilter('USCAR 21')">USCAR 21</button>
+      <button class="layer-btn" data-layer="USCAR 38" onclick="setLayerFilter('USCAR 38')">USCAR 38</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpiCards"></div>
+
+    <!-- Main Dashboard Content -->
+    <div class="dashboard-main">
+      <div class="charts-area">
+        <div class="chart-card">
+          <h3>&#128308; Audits Finding Open vs Close & Compliance Audit Percentage</h3>
+          <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+        </div>
+      </div>
+      <div class="note-panel">
+        <h3>&#128221; Note</h3>
+        <div class="note-content" id="noteContent">
+          Loading data...
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div id="detailPanel" class="detail-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h4 id="detailTitle">NC Details</h4>
+        <button onclick="closeDetailPanel()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;">✕ Close</button>
+      </div>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <!-- AUDIT FORM -->
+  <div id="sectionAuditForm" class="page-content" style="display:none;">
+    <div class="page-title">&#128203; USCAR Audit Form</div>
+    
+    <div class="form-section">
+      <div class="form-grid">
+        <div class="form-field"><label>Auditor Name</label><div class="field-val" id="fAuditor">—</div></div>
+        <div class="form-field"><label>Audit Layer/USCAR</label><div class="field-val" id="fLayer">—</div></div>
+        <div class="form-field"><label>Select Available Plan Date</label><select id="fDate" onchange="onDateChange()"><option value="">— Select date —</option></select></div>
+        <div class="form-field"><label>Line No.</label><div class="field-val" id="fLine">—</div></div>
+        <div class="form-field"><label>Part Number</label><input type="text" id="fPartNo" placeholder="Enter part number"></div>
+        <div class="form-field"><label>Part Description</label><input type="text" id="fPartDesc" placeholder="Enter part description"></div>
+        <div class="form-field"><label>Audit Date</label><input type="date" id="fAuditDate"></div>
+        <div class="form-field"><label>AWG/Wire Description</label><input type="text" id="fWireDesc" placeholder="e.g., 20 AWG/37 strand wire"></div>
+        <div class="form-field"><label>Machine No.</label><input type="text" id="fMachineNo" placeholder="Enter machine number"></div>
+        <div class="form-field"><label>Tooling No.</label><input type="text" id="fToolingNo" placeholder="Enter tooling number"></div>
+        <div class="form-field"><label>USW/CM Description</label><input type="text" id="fUSWDesc" placeholder="e.g., Ultrasonic Welding"></div>
+        <div class="form-field"><label>Language</label><select id="fLang" onchange="renderQuestions()"><option value="ENG">English</option><option value="IDN">Bahasa Indonesia</option></select></div>
+        <div class="form-field"><label>Auditee Name</label><input type="text" id="fAuditee" placeholder="Enter auditee name"></div>
+      </div>
+    </div>
+
+    <div class="questions-wrap" id="questionsWrap"></div>
+    
+    <div class="score-footer" id="scoreFooter" style="display:none;">
+      <div class="score-grid">
+        <div class="score-box applicable"><div class="val" id="sApplicable">0</div><div class="lbl">Applicable</div></div>
+        <div class="score-box na"><div class="val" id="sNA">0</div><div class="lbl">Not Applicable</div></div>
+        <div class="score-box ok"><div class="val" id="sOK" style="color:var(--success)">0</div><div class="lbl">Total OK</div></div>
+        <div class="score-box nc"><div class="val" id="sNC" style="color:var(--danger)">0</div><div class="lbl">Total NC</div></div>
+        <div class="score-box score"><div class="val" id="sScore">0%</div><div class="lbl">Score</div></div>
+      </div>
+      <button class="btn-submit" onclick="submitAuditForm()">&#128228; Submit Report</button>
+    </div>
+  </div>
+
+  <!-- FOLLOW-UP NC -->
+  <div id="sectionFollowup" class="page-content" style="display:none;">
+    <div class="page-title">&#128270; Follow-up NC</div>
+    <div class="filter-bar">
+      <label>Filter by Responsible Person:</label>
+      <select id="filterPIC" onchange="renderFollowup()"><option value="">All</option></select>
+      <label>Status:</label>
+      <select id="filterStatus" onchange="renderFollowup()">
+        <option value="Open">Open</option>
+        <option value="">All</option>
+        <option value="Closed">Closed</option>
+      </select>
+    </div>
+    <div id="followupList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== APPS SCRIPT URL ====================
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// >>> SILAKAN GANTI URL DI BAWAH INI DENGAN URL APPS SCRIPT ANDA <<<
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIh53OEK5NQE5W4wiiB-Q25kRaU2qk45f4Li6W2m7-HIZBUflVJW-I4rvt_djriaF1/exec';
+
+// ==================== DATA ====================
+const DB = {
+  auditors: [],
+  auditQuestions: [],
+  auditPlan: [],
+  summaryNC: [],
+  uscar21Questions: [],
+  uscar38Questions: []
+};
+
+// State
+let currentUser = null;
+let isGuest = false;
+let currentLayer = null;
+let currentPlanRow = null;
+let questionStates = {};
+let mainChart = null;
+let activeFilter = 'All';
+
+// ==================== LOAD DATA ====================
+async function fetchFromScript(action) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    console.warn('Apps Script URL not set');
+    return null;
+  }
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=${action}`, { cache: 'no-cache' });
+    const json = await res.json();
+    if (json.status === 'ok') return json.rows;
+    return null;
+  } catch(e) {
+    console.warn('fetch failed:', e);
+    return null;
+  }
+}
+
+async function loadAllData() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    showToast('⚠️ Apps Script URL not configured. Please set APPS_SCRIPT_URL variable.', 'error');
+    return;
+  }
+  
+  const [auditors, questions, plan, summary, uscar21, uscar38] = await Promise.all([
+    fetchFromScript('getAuditors'),
+    fetchFromScript('getQuestions'),
+    fetchFromScript('getPlan'),
+    fetchFromScript('getSummary'),
+    fetchFromScript('getUSCAR21'),
+    fetchFromScript('getUSCAR38')
+  ]);
+  
+  if (auditors) DB.auditors = auditors;
+  if (questions) DB.auditQuestions = questions;
+  if (plan) DB.auditPlan = plan;
+  if (summary) DB.summaryNC = summary;
+  if (uscar21) DB.uscar21Questions = uscar21;
+  if (uscar38) DB.uscar38Questions = uscar38;
+  
+  buildCharts();
+  populateFilters();
+}
+
+// ==================== AUTH ====================
+function doLogin() {
+  const name = document.getElementById('loginName').value.trim();
+  const id = String(document.getElementById('loginId').value).trim();
+  const match = DB.auditors.find(a => a.Title && a.Title.toLowerCase() === name.toLowerCase() && String(a.UserID) === id);
+  if (match) {
+    currentUser = match;
+    isGuest = false;
+    startApp();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+function doGuestLogin() {
+  currentUser = {Title:'Guest', UserID:'', Layer:'', UserRule:'Guest', Email:''};
+  isGuest = true;
+  startApp();
+}
+
+function doLogout() {
+  currentUser = null; isGuest = false;
+  document.getElementById('loginPage').classList.add('active');
+  document.getElementById('appShell').classList.remove('active');
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginId').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+async function startApp() {
+  document.getElementById('loginPage').classList.remove('active');
+  document.getElementById('appShell').classList.add('active');
+  document.getElementById('navUserName').textContent = currentUser.Title;
+  document.getElementById('navAvatar').textContent = currentUser.Title[0].toUpperCase();
+  document.getElementById('guestBadge').textContent = isGuest ? 'Guest' : '';
+  document.getElementById('navAuditForm').style.display = isGuest ? 'none' : '';
+  await loadAllData();
+  setupAuditForm();
+  renderFollowup();
+}
+
+// ==================== NAVIGATION ====================
+function showSection(id) {
+  ['sectionDashboard','sectionAuditForm','sectionFollowup'].forEach(s => {
+    document.getElementById(s).style.display = 'none';
+  });
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const map = {dashboard:'sectionDashboard', auditForm:'sectionAuditForm', followup:'sectionFollowup'};
+  document.getElementById(map[id]).style.display = 'block';
+  if (id === 'dashboard') document.querySelectorAll('.nav-link')[0].classList.add('active');
+  else if (id === 'auditForm') document.querySelectorAll('.nav-link')[1].classList.add('active');
+  else document.querySelectorAll('.nav-link')[2].classList.add('active');
+}
+
+// ==================== CHARTS ====================
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function parseDate(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d) ? null : d;
+}
+
+function formatMonthYear(d) {
+  if (!d) return '';
+  return `${MONTHS[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`;
+}
+
+function getFilteredNC() {
+  if (activeFilter === 'All') return DB.summaryNC;
+  return DB.summaryNC.filter(r => r.USCAR === activeFilter);
+}
+
+function getFilteredPlan() {
+  if (activeFilter === 'All') return DB.auditPlan;
+  return DB.auditPlan.filter(r => r.USCAR === activeFilter);
+}
+
+function setLayerFilter(layer) {
+  activeFilter = layer;
+  document.querySelectorAll('.layer-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.layer === layer);
+  });
+  closeDetailPanel();
+  buildCharts();
+}
+
+function buildKPICards() {
+  const nc = getFilteredNC();
+  const plan = getFilteredPlan();
+  
+  const totalNC = nc.length;
+  const closedNC = nc.filter(r => (r.Status || '').toLowerCase() === 'closed').length;
+  const pctNC = totalNC > 0 ? Math.round((closedNC / totalNC) * 100) : 0;
+  const totalPlan = plan.length;
+  const donePlan = plan.filter(r => (r.StatusAudit || '').toLowerCase() === 'done').length;
+  const pctDone = totalPlan > 0 ? Math.round((donePlan / totalPlan) * 100) : 0;
+  
+  const statusText = pctNC >= 80 ? '✅ Good' : pctNC >= 50 ? '⚠️ Fair' : '🔴 Needs attention';
+  const planStatus = pctDone >= 80 ? '✅ On Track' : pctDone >= 50 ? '⚠️ Fair' : '🔴 Behind';
+  
+  document.getElementById('kpiCards').innerHTML = `
+    <div class="kpi-card"><div class="kpi-val">${totalNC}</div><div class="kpi-lbl">TOTAL NC</div><div class="kpi-sub">${activeFilter}</div></div>
+    <div class="kpi-card"><div class="kpi-val">${closedNC}</div><div class="kpi-lbl">NC CLOSED</div><div class="kpi-sub">from ${totalNC} NC</div></div>
+    <div class="kpi-card"><div class="kpi-val">${pctNC}%</div><div class="kpi-lbl">% NC CLOSED</div><div class="kpi-sub">${statusText}</div></div>
+    <div class="kpi-card"><div class="kpi-val">${totalPlan}</div><div class="kpi-lbl">TOTAL AUDIT PLAN</div><div class="kpi-sub">${activeFilter}</div></div>
+    <div class="kpi-card"><div class="kpi-val">${donePlan}</div><div class="kpi-lbl">AUDIT DONE</div><div class="kpi-sub">from ${totalPlan} plan</div></div>
+    <div class="kpi-card"><div class="kpi-val">${pctDone}%</div><div class="kpi-lbl">% AUDIT DONE</div><div class="kpi-sub">${planStatus}</div></div>
+  `;
+}
+
+function buildCharts() {
+  buildKPICards();
+  
+  const nc = getFilteredNC();
+  const plan = getFilteredPlan();
+  
+  // Group by month
+  const ncByMonth = {};
+  nc.forEach(r => {
+    const d = parseDate(r.Period);
+    if (!d) return;
+    const key = formatMonthYear(d);
+    if (!ncByMonth[key]) ncByMonth[key] = { open: 0, closed: 0 };
+    if ((r.Status || '').toLowerCase() === 'closed') ncByMonth[key].closed++;
+    else ncByMonth[key].open++;
+  });
+  
+  const planByMonth = {};
+  plan.forEach(r => {
+    const d = parseDate(r.Period);
+    if (!d) return;
+    const key = formatMonthYear(d);
+    if (!planByMonth[key]) planByMonth[key] = { plan: 0, done: 0 };
+    planByMonth[key].plan++;
+    if ((r.StatusAudit || '').toLowerCase() === 'done') planByMonth[key].done++;
+  });
+  
+  // Get all months from both datasets
+  const allMonths = new Set([...Object.keys(ncByMonth), ...Object.keys(planByMonth)]);
+  const sortedMonths = Array.from(allMonths).sort((a,b) => {
+    const dateA = new Date(a);
+    const dateB = new Date(b);
+    return dateA - dateB;
+  });
+  
+  const openData = sortedMonths.map(m => ncByMonth[m]?.open || 0);
+  const closedData = sortedMonths.map(m => ncByMonth[m]?.closed || 0);
+  const complianceData = sortedMonths.map(m => {
+    const p = planByMonth[m];
+    if (!p || p.plan === 0) return 0;
+    return Math.round((p.done / p.plan) * 100);
+  });
+  
+  if (mainChart) mainChart.destroy();
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sortedMonths,
+      datasets: [
+        { label: 'Findings Open', data: openData, borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Findings Closed', data: closedData, borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Audit Compliance (Actual/Plan in %)', data: complianceData, borderColor: '#02453c', backgroundColor: 'rgba(2,69,60,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const index = activeEls[0].dataIndex;
+          const month = sortedMonths[index];
+          const datasetLabel = activeEls[0].dataset.label;
+          if (datasetLabel === 'Findings Open' || datasetLabel === 'Findings Closed') {
+            showNCDetailForMonth(month);
+          } else if (datasetLabel === 'Audit Compliance (Actual/Plan in %)') {
+            showPlanDetailForMonth(month);
+          }
+        }
+      },
+      plugins: {
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}${ctx.dataset.label.includes('%') ? '%' : ''}` } },
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Number of Findings' } },
+        y1: { position: 'right', beginAtZero: true, max: 100, title: { display: true, text: 'Compliance (%)' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+  
+  // Update Note
+  updateNoteContent(sortedMonths);
+}
+
+function updateNoteContent(months) {
+  const currentMonth = months.length > 0 ? months[months.length - 1] : 'Jun-26';
+  const nc = getFilteredNC();
+  const plan = getFilteredPlan();
+  
+  const totalNC = nc.length;
+  const closedNC = nc.filter(r => (r.Status || '').toLowerCase() === 'closed').length;
+  const totalPlan = plan.length;
+  const donePlan = plan.filter(r => (r.StatusAudit || '').toLowerCase() === 'done').length;
+  
+  document.getElementById('noteContent').innerHTML = `
+    <p>1. The audit <span class="highlight-yellow">(${activeFilter})</span> has been implemented and continue as per plan. 
+    As per the current period <span class="highlight-yellow">(${currentMonth})</span>, there is/are total 
+    <span class="highlight-yellow">(${totalNC})</span> NCs where <span class="highlight-yellow">(${closedNC})</span> 
+    of <span class="highlight-yellow">(${totalNC})</span> NCs has been closed. The details NCs are listed below the chart. 
+    Please click the line chart to show the list.</p>
+    <p style="margin-top:12px;">2. The plan of audit as of the current period <span class="highlight-yellow">(${currentMonth})</span> is 
+    <span class="highlight-yellow">(${totalPlan})</span> schedule while the compliance of the audit is 
+    <span class="highlight-yellow">(${donePlan})</span> schedule. The reason of missing schedule are indicated in the schedule list below the chart. 
+    Please click the line chart to show the list.</p>
+  `;
+}
+
+function showNCDetailForMonth(month) {
+  const nc = getFilteredNC();
+  const filtered = nc.filter(r => {
+    const d = parseDate(r.Period);
+    return d && formatMonthYear(d) === month;
+  });
+  
+  document.getElementById('detailTitle').innerHTML = `NC Details — ${month} (${filtered.length} items)`;
+  let html = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>ID No.</th><th>Line No.</th><th>USCAR</th><th>Clause</th><th>Findings Description</th><th>Status</th></tr></thead><tbody>`;
+  filtered.forEach(r => {
+    const status = (r.Status || 'Open').toLowerCase();
+    html += `<tr onclick="showNCDetailRow(${r.No || r['ID.No.'] || 0})">
+      <td>${r.No || r['ID.No.'] || ''}</td>
+      <td>${r.Line || r.LineNo || ''}</td>
+      <td>${r.USCAR || r.Layer || ''}</td>
+      <td>${r.Clause || ''}</td>
+      <td style="max-width:300px;">${(r.FindingDesc || r.FindingDescription || '').substring(0,80)}${(r.FindingDesc || '').length > 80 ? '...' : ''}</td>
+      <td><span class="badge badge-${status}">${status === 'closed' ? 'Closed' : 'Open'}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailPanel').style.display = 'block';
+}
+
+function showPlanDetailForMonth(month) {
+  const plan = getFilteredPlan();
+  const filtered = plan.filter(r => {
+    const d = parseDate(r.Period);
+    return d && formatMonthYear(d) === month;
+  });
+  
+  document.getElementById('detailTitle').innerHTML = `Audit Plan vs Actual — ${month} (${filtered.length} items)`;
+  let html = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Auditor</th><th>Line No.</th><th>USCAR</th><th>Plan Date</th><th>Actual Date</th><th>Status</th></tr></thead><tbody>`;
+  filtered.forEach(r => {
+    const status = (r.StatusAudit || 'Open').toLowerCase();
+    const planDate = r.PlanAudit ? new Date(r.PlanAudit).toLocaleDateString() : '-';
+    const actualDate = r.ActualAudit ? new Date(r.ActualAudit).toLocaleDateString() : '-';
+    html += `<tr>
+      <td>${r.Auditor || ''}</td>
+      <td>${r.Line || ''}</td>
+      <td>${r.USCAR || r.Layer || ''}</td>
+      <td>${planDate}</td><td>${actualDate}</td>
+      <td><span class="badge badge-${status === 'done' ? 'done' : 'open'}">${status === 'done' ? 'Done' : 'Open'}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailPanel').style.display = 'block';
+}
+
+function showNCDetailRow(id) {
+  const nc = DB.summaryNC.find(r => r.No === id || r['ID.No.'] === id);
+  if (!nc) return;
+  alert(`NC Details:\nID: ${nc.No || nc['ID.No.']}\nFinding: ${nc.FindingDesc || nc.FindingDescription || '-'}\nRoot Cause: ${nc.RootCause || '-'}\nCorrective Action: ${nc.CA || '-'}`);
+}
+
+function closeDetailPanel() {
+  document.getElementById('detailPanel').style.display = 'none';
+}
+
+// ==================== AUDIT FORM ====================
+function setupAuditForm() {
+  if (isGuest || !currentUser) return;
+  document.getElementById('fAuditor').textContent = currentUser.Title;
+  document.getElementById('fAuditDate').value = new Date().toISOString().split('T')[0];
+  
+  const dateEl = document.getElementById('fDate');
+  dateEl.innerHTML = '<option value="">— Select available plan date —</option>';
+  
+  const openPlan = DB.auditPlan.filter(r => {
+    const auditorMatch = (r.Auditor || '').toLowerCase() === currentUser.Title.toLowerCase();
+    const isOpen = (r.StatusAudit || '').toLowerCase() === 'open';
+    return auditorMatch && isOpen;
+  });
+  
+  const plansToShow = openPlan.length > 0 ? openPlan : DB.auditPlan.filter(r => (r.StatusAudit || '').toLowerCase() === 'open');
+  plansToShow.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(r);
+    const planDate = r.PlanAudit ? new Date(r.PlanAudit).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'}) : '';
+    opt.textContent = `${planDate} — ${r.Line || ''} [${r.USCAR || r.Layer || ''}]`;
+    dateEl.appendChild(opt);
+  });
+}
+
+function onDateChange() {
+  const val = document.getElementById('fDate').value;
+  if (!val) {
+    currentPlanRow = null;
+    document.getElementById('fLine').textContent = '—';
+    document.getElementById('fLayer').textContent = '—';
+    document.getElementById('questionsWrap').innerHTML = '';
+    document.getElementById('scoreFooter').style.display = 'none';
+    return;
+  }
+  currentPlanRow = JSON.parse(val);
+  document.getElementById('fLine').textContent = currentPlanRow.Line || '—';
+  document.getElementById('fLayer').textContent = currentPlanRow.USCAR || currentPlanRow.Layer || '—';
+  renderQuestions();
+}
+
+const NC_MODES = ['Not Follow OI/WI', 'Document/Record not Updated', 'Improvement-Quality', 'Improvement-Process', 'Improvement-5S & Safety', 'Improvement-Ergonomic', 'Improvement-Traceability'];
+const SEVERITY_MAP = {
+  'Not Follow OI/WI': 'Minor', 'Document/Record not Updated': 'Minor',
+  'Improvement-Quality': 'OFI', 'Improvement-Process': 'OFI',
+  'Improvement-5S & Safety': 'OFI', 'Improvement-Ergonomic': 'OFI', 'Improvement-Traceability': 'OFI'
+};
+
+function renderQuestions() {
+  const layer = document.getElementById('fLayer').textContent;
+  const lang = document.getElementById('fLang').value;
+  
+  let questions = [];
+  if (layer === 'USCAR 21') questions = DB.uscar21Questions;
+  else if (layer === 'USCAR 38') questions = DB.uscar38Questions;
+  else questions = DB.auditQuestions.filter(q => q.Layer === layer);
+  
+  if (questions.length === 0) {
+    document.getElementById('questionsWrap').innerHTML = '<p style="padding:20px;">No questions found for this audit type.</p>';
+    return;
+  }
+  
+  questionStates = {};
+  questions.forEach((q, i) => {
+    questionStates[i] = { ok: false, nc: false, mode: '', pic: '', desc: '', picSrc: '', picName: '' };
+  });
+  
+  let html = '';
+  questions.forEach((q, i) => {
+    const qText = lang === 'IDN' ? (q.IDN || q.ENG || q.Question || '') : (q.ENG || q.IDN || q.Question || '');
+    const clause = q.Clause || '';
+    
+    html += `<div class="question-item" id="qi_${i}">
+      <div class="q-header">
+        <span class="q-clause">${clause}</span>
+        <span class="q-text">${qText}</span>
+      </div>
+      <div class="q-actions">
+        <label class="q-check"><input type="checkbox" id="ok_${i}" onchange="toggleQ(${i},'ok')"><span class="ok-label">✓ OK</span></label>
+        <label class="q-check"><input type="checkbox" id="nc_${i}" onchange="toggleQ(${i},'nc')"><span class="nc-label">✗ NC</span></label>
+      </div>
+      <div class="nc-details" id="ncd_${i}">
+        <div class="nc-details-grid">
+          <select id="ncMode_${i}" onchange="questionStates[${i}].mode=this.value">
+            <option value="">— NC Mode —</option>
+            ${NC_MODES.map(m => `<option value="${m}">${m}</option>`).join('')}
+          </select>
+          <input type="text" id="ncPIC_${i}" placeholder="PIC Name" onchange="questionStates[${i}].pic=this.value">
+          <textarea id="ncDesc_${i}" placeholder="Describe the NC finding..." rows="2" oninput="questionStates[${i}].desc=this.value"></textarea>
+          <div>
+            <label class="img-upload-btn">📷 Add Photo<input type="file" accept="image/*" style="display:none" onchange="handleImg(event,${i})"></label>
+            <img id="imgPrev_${i}" class="img-preview" src="">
+          </div>
+        </div>
+      </div>`;
+    
+    // Add specification table for Missing strands question
+    if (clause.includes('1.38') || clause.toLowerCase().includes('missing strands')) {
+      html += `<div class="spec-table">
+        <table>
+          <thead><tr><th>Strand Count of Cable</th><th>Broken or Missing Strand Limit</th></tr></thead>
+          <tbody>
+            <tr><td>1 to 7-strand cable</td><td>0 broken or missing strands allowed</td></tr>
+            <tr><td>8 to 19-strand cable</td><td>Up to 1 broken or missing strand allowed</td></tr>
+            <tr><td>20 to 37-strand cable</td><td>Up to 2 broken or missing strands allowed</td></tr>
+            <tr><td>38 and higher strand count</td><td>Up to 5% of total strand count can be broken or missing</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+    }
+    
+    html += `</div>`;
+  });
+  
+  document.getElementById('questionsWrap').innerHTML = html;
+  document.getElementById('scoreFooter').style.display = 'block';
+  updateScore();
+}
+
+function toggleQ(i, type) {
+  const okCb = document.getElementById(`ok_${i}`);
+  const ncCb = document.getElementById(`nc_${i}`);
+  const ncd = document.getElementById(`ncd_${i}`);
+  const qi = document.getElementById(`qi_${i}`);
+  
+  if (type === 'ok') { if (okCb.checked) ncCb.checked = false; }
+  if (type === 'nc') { if (ncCb.checked) okCb.checked = false; }
+  
+  questionStates[i].ok = okCb.checked;
+  questionStates[i].nc = ncCb.checked;
+  qi.className = 'question-item' + (okCb.checked ? ' ok' : ncCb.checked ? ' nc' : '');
+  ncd.className = 'nc-details' + (ncCb.checked ? ' show' : '');
+  updateScore();
+}
+
+function handleImg(event, i) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    questionStates[i].picSrc = e.target.result;
+    questionStates[i].picName = file.name;
+    document.getElementById(`imgPrev_${i}`).src = e.target.result;
+    document.getElementById(`imgPrev_${i}`).style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateScore() {
+  const vals = Object.values(questionStates);
+  const totalQ = vals.length;
+  const totalOK = vals.filter(v => v.ok).length;
+  const totalNC = vals.filter(v => v.nc).length;
+  const totalNA = vals.filter(v => !v.ok && !v.nc).length;
+  const applicable = totalOK + totalNC;
+  const score = applicable > 0 ? Math.round((totalOK / applicable) * 100) : 0;
+  
+  document.getElementById('sApplicable').textContent = applicable;
+  document.getElementById('sNA').textContent = totalNA;
+  document.getElementById('sOK').textContent = totalOK;
+  document.getElementById('sNC').textContent = totalNC;
+  document.getElementById('sScore').textContent = score + '%';
+}
+
+async function submitAuditForm() {
+  if (!currentPlanRow) { showToast('Please select an audit date first.', 'error'); return; }
+  
+  const vals = Object.values(questionStates);
+  const totalOK = vals.filter(v => v.ok).length;
+  const totalNC = vals.filter(v => v.nc).length;
+  const totalNA = vals.filter(v => !v.ok && !v.nc).length;
+  const applicable = totalOK + totalNC;
+  const score = applicable > 0 ? ((totalOK / applicable) * 100).toFixed(2) : 0;
+  
+  const now = new Date();
+  const period = `${MONTHS[now.getMonth()]}-${String(now.getFullYear()).slice(2)}`;
+  const auditDate = document.getElementById('fAuditDate').value || now.toISOString().split('T')[0];
+  const targetDate = new Date(auditDate);
+  targetDate.setDate(targetDate.getDate() + 15);
+  
+  // Get next ID
+  let nextId = DB.summaryNC.length + 1;
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    try {
+      const idRes = await fetch(`${APPS_SCRIPT_URL}?action=getNextId`);
+      const idJson = await idRes.json();
+      if (idJson.status === 'ok') nextId = idJson.nextId;
+    } catch(e) {}
+  }
+  
+  const questions = (document.getElementById('fLayer').textContent === 'USCAR 21') ? DB.uscar21Questions : DB.uscar38Questions;
+  
+  for (let i = 0; i < questions.length; i++) {
+    const state = questionStates[i];
+    if (!state.nc) continue;
+    
+    const q = questions[i];
+    const severity = SEVERITY_MAP[state.mode] || 'OFI';
+    
+    const newNC = {
+      'ID.No.': nextId++,
+      'USCAR': document.getElementById('fLayer').textContent,
+      'Factory/site': 'Batam',
+      'LineNo.': currentPlanRow.Line || '',
+      'Customer': currentPlanRow.Customer || '',
+      'PartNumber': document.getElementById('fPartNo').value,
+      'PartDesc.': document.getElementById('fPartDesc').value,
+      'AuditDate': auditDate,
+      'Auditor': currentUser.Title,
+      'MachineNo.': document.getElementById('fMachineNo').value,
+      'ToolingNo.': document.getElementById('fToolingNo').value,
+      'AWG/WireDesc.': document.getElementById('fWireDesc').value,
+      'USW/CMDesc.': document.getElementById('fUSWDesc').value,
+      'Clause': q.Clause || '',
+      'NCCategory': state.mode,
+      'Period': period,
+      'FindingDescription': state.desc,
+      'NCPicture': state.picName || '',
+      'PICName': state.pic,
+      'TargetDate': targetDate.toISOString().split('T')[0],
+      'Status': 'Open'
+    };
+    
+    DB.summaryNC.push(newNC);
+    
+    if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'appendAuditForm', data: newNC })
+        });
+      } catch(e) {}
+    }
+  }
+  
+  // Update plan
+  const planUpdate = {
+    PlanAudit: currentPlanRow.PlanAudit,
+    Line: currentPlanRow.Line,
+    Auditor: currentPlanRow.Auditor,
+    ActualAudit: auditDate,
+    TotalNCs: totalNC,
+    StatusAudit: 'Done'
+  };
+  
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updatePlanRow', data: planUpdate })
+      });
+    } catch(e) {}
+  }
+  
+  showToast(`✅ Audit submitted! ${totalNC} NC(s) recorded.`, 'success');
+  
+  // Reset form
+  document.getElementById('fDate').value = '';
+  document.getElementById('fPartNo').value = '';
+  document.getElementById('fPartDesc').value = '';
+  document.getElementById('fMachineNo').value = '';
+  document.getElementById('fToolingNo').value = '';
+  document.getElementById('fWireDesc').value = '';
+  document.getElementById('fUSWDesc').value = '';
+  document.getElementById('fAuditee').value = '';
+  document.getElementById('questionsWrap').innerHTML = '';
+  document.getElementById('scoreFooter').style.display = 'none';
+  document.getElementById('fLine').textContent = '—';
+  document.getElementById('fLayer').textContent = '—';
+  currentPlanRow = null;
+  
+  await loadAllData();
+  renderFollowup();
+}
+
+// ==================== FOLLOW-UP NC ====================
+function populateFilters() {
+  const picEl = document.getElementById('filterPIC');
+  picEl.innerHTML = '<option value="">All</option>';
+  const pics = [...new Set(DB.summaryNC.map(r => r.PICName || r.ResPerson || '').filter(Boolean))].sort();
+  pics.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    picEl.appendChild(opt);
+  });
+}
+
+function renderFollowup() {
+  const picFilter = document.getElementById('filterPIC').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  
+  let rows = DB.summaryNC.filter(r => {
+    const status = r.Status || r['Status'] || 'Open';
+    if (statusFilter && status !== statusFilter) return false;
+    const pic = r.PICName || r.ResPerson || '';
+    if (picFilter && pic !== picFilter) return false;
+    return true;
+  });
+  
+  const container = document.getElementById('followupList');
+  if (rows.length === 0) {
+    container.innerHTML = '<p style="padding:20px;">No NC items found.</p>';
+    return;
+  }
+  
+  container.innerHTML = rows.map((r, i) => {
+    const status = r.Status || r['Status'] || 'Open';
+    const isClosed = status === 'Closed';
+    const id = r['ID.No.'] || r.No || i;
+    
+    return `<div class="nc-card ${isClosed ? 'status-closed' : ''}" id="ncc_${i}">
+      <div class="nc-card-grid">
+        <div class="nc-field"><div class="nf-lbl">ID NO.</div><div class="nf-val">${id}</div></div>
+        <div class="nc-field"><div class="nf-lbl">LINE NO.</div><div class="nf-val">${r.LineNo || r.Line || ''}</div></div>
+        <div class="nc-field"><div class="nf-lbl">FINDING MODE</div><div class="nf-val">${r.NCCategory || r.FindingMode || ''}</div></div>
+        <div class="nc-field"><div class="nf-lbl">CLAUSE</div><div class="nf-val">${r.Clause || ''}</div></div>
+        <div class="nc-field"><div class="nf-lbl">ISSUE OPEN DATE</div><div class="nf-val">${r.AuditDate ? new Date(r.AuditDate).toLocaleDateString() : (r.IssueDate || '-')}</div></div>
+        <div class="nc-field"><div class="nf-lbl">AUDITOR</div><div class="nf-val">${r.Auditor || ''}</div></div>
+        <div class="nc-field"><div class="nf-lbl">TARGET DATE</div><div class="nf-val">${r.TargetDate ? new Date(r.TargetDate).toLocaleDateString() : '-'}</div></div>
+        <div class="nc-field"><div class="nf-lbl">LAYER</div><div class="nf-val">${r.USCAR || r.Layer || ''}</div></div>
+      </div>
+      <div class="nc-field" style="margin-bottom:12px;">
+        <div class="nf-lbl">FINDING DESCRIPTION</div>
+        <div class="nf-val" style="background:var(--bg);padding:8px;border-radius:6px;">${r.FindingDescription || r.FindingDesc || ''}</div>
+      </div>
+      <div class="nc-card-grid">
+        <div class="nc-field"><div class="nf-lbl">RESPONSIBLE PERSON</div><div class="nf-val">${r.PICName || r.ResPerson || ''}</div></div>
+        <div class="nc-field"><div class="nf-lbl">VERIFIED BY</div><div class="nf-val">${currentUser ? currentUser.Title : ''}</div></div>
+      </div>
+      ${!isGuest ? `
+      <div class="nc-edit-row">
+        <div><div class="nf-lbl">Immediate Control / Correction</div><textarea class="nc-textarea" id="nc_imm_${i}" placeholder="Enter immediate control...">${r.ImmCtrl || r['Immediate control or immediate correction'] || ''}</textarea></div>
+        <div><div class="nf-lbl">Root Cause</div><textarea class="nc-textarea" id="nc_root_${i}" placeholder="Enter root cause...">${r.RootCause || ''}</textarea></div>
+        <div><div class="nf-lbl">Corrective Action</div><textarea class="nc-textarea" id="nc_ca_${i}" placeholder="Enter corrective action...">${r.CA || r['Corrective Action'] || ''}</textarea></div>
+        <div>
+          <div class="nf-lbl">Verification Result</div>
+          <select class="nc-select" id="nc_ver_${i}">
+            <option value="">— Select —</option>
+            <option ${(r.VerResult || '') === 'Accepted' ? 'selected' : ''}>Accepted</option>
+            <option ${(r.VerResult || '') === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            <option ${(r.VerResult || '') === 'Pending' ? 'selected' : ''}>Pending</option>
+          </select>
+        </div>
+      </div>
+      <div class="nc-edit-row">
+        <div><div class="nf-lbl">Verification Date</div><input type="date" class="nc-select" id="nc_vdate_${i}" value="${r.VerDate ? new Date(r.VerDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}"></div>
+        <div><div class="nf-lbl">Final Status</div><select class="nc-select" id="nc_status_${i}"><option ${status === 'Open' ? 'selected' : ''}>Open</option><option ${status === 'Closed' ? 'selected' : ''}>Closed</option></select></div>
+      </div>
+      <div class="nc-actions">
+        <button class="btn-sm btn-primary" onclick="saveNCFollowup(${i}, '${id}')">&#128190; Save & Upload</button>
+        <button class="btn-sm btn-email" onclick="notifyPIC('${(r.PICName || r.ResPerson || '').replace(/'/g, "\\'")}', '${(r.Auditor || '').replace(/'/g, "\\'")}', '${r.AuditDate || r.IssueDate || ''}', '${(r.FindingDescription || r.FindingDesc || '').substring(0,50).replace(/'/g, "\\'")}')">&#9993; Notify PIC</button>
+        <span class="upload-status" id="ncSt_${i}"></span>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function saveNCFollowup(i, id) {
+  const el = document.getElementById(`ncSt_${i}`);
+  const rowData = {
+    No: id,
+    'Immediate control or immediate correction': document.getElementById(`nc_imm_${i}`)?.value || '',
+    'Root Cause': document.getElementById(`nc_root_${i}`)?.value || '',
+    'Corrective Action': document.getElementById(`nc_ca_${i}`)?.value || '',
+    'Verification Result of action taken': document.getElementById(`nc_ver_${i}`)?.value || '',
+    'Verification date': document.getElementById(`nc_vdate_${i}`)?.value || '',
+    'Verified by': currentUser ? currentUser.Title : '',
+    'Status': document.getElementById(`nc_status_${i}`)?.value || 'Open'
+  };
+  
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    el.textContent = '⏳ Uploading...';
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateSummaryRow', data: rowData })
+      });
+      const json = await res.json();
+      if (json.status === 'ok') {
+        el.textContent = '✅ Saved to Google Sheets';
+        el.style.color = 'green';
+      } else {
+        el.textContent = '❌ Failed';
+        el.style.color = 'red';
+      }
+    } catch(e) {
+      el.textContent = '❌ Error';
+      el.style.color = 'red';
+    }
+  } else {
+    el.textContent = '✓ Saved locally';
+    el.style.color = 'green';
+  }
+  
+  // Update local DB
+  const ncRow = DB.summaryNC.find(r => (r['ID.No.'] || r.No) == id);
+  if (ncRow) {
+    ncRow.ImmCtrl = rowData['Immediate control or immediate correction'];
+    ncRow.RootCause = rowData['Root Cause'];
+    ncRow.CA = rowData['Corrective Action'];
+    ncRow.VerResult = rowData['Verification Result of action taken'];
+    ncRow.VerDate = rowData['Verification date'];
+    ncRow.VerBy = rowData['Verified by'];
+    ncRow.Status = rowData['Status'];
+  }
+  
+  setTimeout(() => { renderFollowup(); buildCharts(); }, 500);
+}
+
+function notifyPIC(pic, auditor, issueDate, desc) {
+  const emailBody = `Hi ${pic},\n\nAn NC from Layer Process Audit has been issued by ${auditor} on ${issueDate}.\n\nFinding: ${desc}\n\nYou are assigned to close the NC. Please contact QA/QC team for more details.\n\nThank you.\n\nRegards,\nLPA Team`;
+  const subject = `[USCAR NC Notification] Action Required`;
+  window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`);
+}
+
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type}`;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 3000);
+}
+
+// Initial load
+window.addEventListener('load', () => {
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    loadAllData();
+  }
+});
+</script>
+</body>
+</html>
