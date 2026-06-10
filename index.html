@@ -201,7 +201,7 @@
         <svg width="36" height="36" viewBox="0 0 36 36"><path d="M18 3L4 10v9c0 8.25 5.9 15.97 14 18 8.1-2.03 14-9.75 14-18V10L18 3zm-2 20l-4-4 1.41-1.41L16 20.17l7.59-7.59L25 14l-9 9z" fill="white"/></svg>
       </div>
       <h1>USCAR Audit System</h1>
-      <p>Layer Process Audit Management - USCAR 21 & 38</p>
+      <p>Internal Audit Management - USCAR 21 & 38</p>
     </div>
     <div class="form-group">
       <label>User Name</label>
@@ -290,7 +290,7 @@
     <div class="form-section">
       <div class="form-grid">
         <div class="form-field"><label>Auditor Name</label><div class="field-val" id="fAuditor">—</div></div>
-        <div class="form-field"><label>Audit Layer/USCAR</label><div class="field-val" id="fLayer">—</div></div>
+        <div class="form-field"><label>Audit USCAR</label><div class="field-val" id="fLayer">—</div></div>
         <div class="form-field"><label>Select Available Plan Date</label><select id="fDate" onchange="onDateChange()"><option value="">— Select date —</option></select></div>
         <div class="form-field"><label>Line No.</label><div class="field-val" id="fLine">—</div></div>
         <div class="form-field"><label>Part Number</label><input type="text" id="fPartNo" placeholder="Enter part number"></div>
@@ -1101,7 +1101,7 @@ async function saveNCFollowup(i, id) {
 }
 
 function notifyPIC(pic, auditor, issueDate, desc) {
-  const emailBody = `Hi ${pic},\n\nAn NC from Layer Process Audit has been issued by ${auditor} on ${issueDate}.\n\nFinding: ${desc}\n\nYou are assigned to close the NC. Please contact QA/QC team for more details.\n\nThank you.\n\nRegards,\nLPA Team`;
+  const emailBody = `Hi ${pic},\n\nAn NC from USCAR Audit has been issued by ${auditor} on ${issueDate}.\n\nFinding: ${desc}\n\nYou are assigned to close the NC. Please contact QA/QC team for more details.\n\nThank you.\n\nRegards,\nLPA Team`;
   const subject = `[USCAR NC Notification] Action Required`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`);
 }
