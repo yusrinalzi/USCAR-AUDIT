@@ -194,9 +194,9 @@
     
     <div class="layer-filter">
       <span>Filter by:</span>
-      <button class="layer-btn active" data-layer="All" onclick="setLayerFilter('All')">Overall</button>
-      <button class="layer-btn" data-layer="USCAR 21" onclick="setLayerFilter('USCAR 21')">USCAR 21</button>
-      <button class="layer-btn" data-layer="USCAR 38" onclick="setLayerFilter('USCAR 38')">USCAR 38</button>
+      <button class="layer-btn active" data-layer="All" onclick="setUSCARFilter('All')">Overall</button>
+      <button class="layer-btn" data-layer="USCAR 21" onclick="setUSCARFilter('USCAR 21')">USCAR 21</button>
+      <button class="layer-btn" data-layer="USCAR 38" onclick="setUSCARFilter('USCAR 38')">USCAR 38</button>
       <button style="margin-left:auto; padding:4px 12px; background:var(--bg2); border:none; border-radius:6px; cursor:pointer;" onclick="loadAllData()">Refresh</button>
     </div>
 
@@ -270,7 +270,7 @@
 <script>
 // ==================== APPS SCRIPT URL ====================
 // GANTI DENGAN URL DEPLOY ANDA!
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIh53OEK5NQE5W4wiiB-Q25kRaU2qk45f4Li6W2m7-HIZBUflVJW-I4rvt_djriaF1/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKn9K1u3IP3KxItaTozb2wpsTbXhc6l-RSjTS1BsLNa3q2-etofWCoTKWFxTTT8MZa/exec';
 
 // ==================== DATA ====================
 const DB = { auditors: [], auditPlan: [], summaryNC: [], uscar21Questions: [], uscar38Questions: [] };
@@ -337,8 +337,8 @@ function parsePeriod(val) { let d = new Date(val); return isNaN(d) ? null : d; }
 function getFilteredNC() { return activeFilter === 'All' ? DB.summaryNC : DB.summaryNC.filter(r => r.USCAR === activeFilter); }
 function getFilteredPlan() { return activeFilter === 'All' ? DB.auditPlan : DB.auditPlan.filter(r => r.USCAR === activeFilter); }
 
-function setLayerFilter(layer) {
-  activeFilter = layer;
+function setUSCARFilter(USCAR) {
+  activeFilter = USCAR;
   document.querySelectorAll('.layer-btn').forEach(b => b.classList.toggle('active', b.dataset.layer === layer));
   closeDetailPanel();
   buildCharts();
