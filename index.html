@@ -352,7 +352,7 @@ function mapAuditorRow(r) {
   return {
     Title:    r['Title']    || '',
     UserID:   String(r['UserID'] || ''),
-    Layer:    r['Layer']    || '',
+    USCAR:    r['USCAR']    || '',
     UserRule: r['UserRule'] || '',
     Email:    r['Email']    || '',
     Email2:   r['Email2']   || '',
@@ -375,14 +375,13 @@ function mapQuestionRow(r) {
 
 function mapPlanRow(r) {
   return {
-    Title:           r['Title']          || '',
+    No:              r['No.']          || '',
     PlanAudit:       r['PlanAudit']      || '',
     Period:          r['Period']         || '',
     USCAR:           r['USCAR']          || '',
-    Layer:           r['Layer']          || '',
     Auditor:         r['Auditor']        || '',
     Line:            r['Line']           || '',
-    Plan:            r['Plan']           || 1,
+    Customer:        r['Customer']       || '',
     ActualAudit:     r['ActualAudit']    || r['ActualAuditDate'] || '',
     TotalNCs:        r['TotalNCs']       || r['TotalNC'] || 0,
     StatusAudit:     r['StatusAudit']    || 'Open',
@@ -399,12 +398,12 @@ function mapPlanRow(r) {
 function mapSummaryRow(r) {
   return {
     No:          r['ID. No.']     || r['No'] || '',
-    Line:        r['LineNo.']     || r['Line'] || '',
-    Layer:       r['Layer']       || '',
     USCAR:       r['USCAR']       || '',
+    Factory:     r['Factory/site']|| '',
+    Line:        r['LineNo.']     || r['Line'] || '',
+    Customer:    r['Customer']    || '',
     PartNo:      r['PartNumber']  || r['PartNo'] || '',
     PartDesc:    r['PartDesc.']   || '',
-    Auditee:     r['PICName']     || r['Auditee'] || '',
     AuditDate:   r['AuditDate']   || '',
     Auditor:     r['Auditor']     || '',
     MachineNo:   r['MachineNo.']  || '',
@@ -419,7 +418,7 @@ function mapSummaryRow(r) {
     ImmCtrl:     r['ReactionProtocol'] || r['ImmCtrl'] || '',
     RootCause:   r['Root Cause']  || r['RootCause'] || '',
     CA:          r['CorrectiveAction'] || r['CA'] || '',
-    ResPerson:   r['PICName']     || r['ResPerson'] || '',
+    Auditee:     r['PICName']     || r['Auditee'] || '',
     TargetDate:  r['TargetDate']  || '',
     VerResult:   r['VerificationResult'] || r['VerResult'] || '',
     VerBy:       r['VerifiedBy']  || r['VerBy'] || '',
@@ -775,30 +774,29 @@ function onDateChange() {
   if (!val) {
     currentPlanRow = null;
     document.getElementById('fLine').textContent  = '—';
-    document.getElementById('fLayer').textContent = '—';
+    document.getElementById('fUSCAR').textContent = '—';
     document.getElementById('questionsWrap').innerHTML = '';
     document.getElementById('scoreFooter').style.display = 'none';
     return;
   }
   currentPlanRow = JSON.parse(val);
   document.getElementById('fLine').textContent  = currentPlanRow.Line  || '—';
-  document.getElementById('fLayer').textContent = currentPlanRow.USCAR || currentPlanRow.Layer || '—';
+  document.getElementById('fUSCAR').textContent = currentPlanRow.USCAR || currentPlanRow.Layer || '—';
   renderQuestions();
 }
 
 const NC_MODES = [
-  'Not Follow OI/WI',
-  'Document/Record not Updated',
-  'Improvement-Quality',
-  'Improvement-Process',
-  'Improvement-5S & Safety',
-  'Improvement-Ergonomic',
-  'Improvement-Traceability',
-  'Machines, Fixtures, Tools, Work Environment & Facilities',
-  'Man',
-  'Material',
-  'Methods',
-  'Process Effectiveness & Efficiency'
+  'Missing strands-USCAR 38',
+  'Weld Bond-USCAR 38',
+  'Cable AWG-USCAR 38',
+  'Tooling setting-USCAR 38',
+  'Critical items-USCAR 38',
+  'Missing strands-USCAR 21',
+  'Crimping insulation-USCAR 21',
+  'Cable AWG-USCAR 21',
+  'Tooling setting-USCAR 21',
+  'Critical items-USCAR 21',
+   
 ];
 
 function getQuestionsForUSCAR(uscarLabel) {
@@ -808,7 +806,7 @@ function getQuestionsForUSCAR(uscarLabel) {
 }
 
 function renderQuestions() {
-  const uscarLabel = document.getElementById('fLayer').textContent;
+  const uscarLabel = document.getElementById('fUSCAR').textContent;
   const lang       = document.getElementById('fLang').value;
 
   if (!uscarLabel || uscarLabel === '—') {
