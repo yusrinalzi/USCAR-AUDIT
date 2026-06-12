@@ -250,7 +250,7 @@
     <div class="form-section">
       <div class="form-grid">
         <div class="form-field"><label>Auditor Name</label><div class="field-val" id="fAuditor">—</div></div>
-        <div class="form-field"><label>Audit USCAR</label><div class="field-val" id="fLayer">—</div></div>
+        <div class="form-field"><label>Audit USCAR</label><div class="field-val" id="fUSCAR">—</div></div>
         <div class="form-field"><label>Select Plan Date</label><select id="fDate" onchange="onDateChange()"><option value="">— Select —</option></select></div>
         <div class="form-field"><label>Line No.</label><div class="field-val" id="fLine">—</div></div>
         <div class="form-field"><label>Part Number</label><input type="text" id="fPartNo" placeholder="Part number"></div>
@@ -345,7 +345,7 @@ let mainChart      = null;
 let activeLayer    = 'All';
 
 // ==================== APPS SCRIPT ====================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztat7yYZVXVnC7kZpfsHU4iLNNY3pesFxJNsyeBeSM4QkuTaHlleiEphsq_WsCkNw_/exec'; // Set your deployed Apps Script URL here
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNEnwzDyCzu8dw5wfhW2_mozAm3xJyjvEtPTmy7jhhk4ifTBUqpCEnkX2_KQAtE4YL/exec'; // Set your deployed Apps Script URL here
 
 // ==================== DATA MAPPERS ====================
 function mapAuditorRow(r) {
