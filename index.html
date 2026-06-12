@@ -170,6 +170,18 @@
   .form-field input {
     transition: all 0.3s ease;
   }
+.q-spec {
+  font-size: 11px;
+  color: var(--primary);
+  background: var(--bg2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0 4px 0;
+  line-height: 1.5;
+  border-left: 3px solid var(--accent);
+  white-space: pre-line;
+}
+
   
 </style>
 </head>
@@ -389,7 +401,8 @@ function mapQuestionRow(r) {
     Mode:   r['Mode']   || '',
     IDN:    r['QuestionIDN'] || r['IDN'] || '',
     ENG:    r['QuestionENG'] || r['ENG'] || '',
-    USCAR:  r['USCAR']  || ''
+    USCAR:  r['USCAR']  || '',
+    Specification: r['Specification'] || r['Requirement'] || ''  // 🔥 TAMBAHKAN
   };
 }
 
@@ -848,40 +861,42 @@ function renderQuestions() {
     questionStates[i] = { ok: false, nc: false, mode: '', pic: '', desc: '', picSrc: '' };
   });
 
-  let html = '';
-  questions.forEach((q, i) => {
-    const qText = lang === 'IDN' ? (q.IDN || q.ENG || '') : (q.ENG || q.IDN || '');
-    html += `
-      <div class="question-item" id="qi_${i}">
-        <div class="q-header">
-          <span class="q-clause">${q.Clause||''}</span>
-          <span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${q.Mode||''}</span>
-          <span class="q-text">${qText}</span>
-        </div>
-        <div class="q-actions">
-          <label class="q-check"><input type="checkbox" id="ok_${i}" onchange="toggleQ(${i},'ok')"> <span style="color:var(--success);font-weight:600;">✓ OK</span></label>
-          <label class="q-check"><input type="checkbox" id="nc_${i}" onchange="toggleQ(${i},'nc')"> <span style="color:var(--danger);font-weight:600;">✗ NC</span></label>
-          <label class="q-check"><input type="checkbox" id="na_${i}" onchange="toggleQ(${i},'na')"> <span style="color:var(--text-light);font-weight:600;">N/A</span></label>
-        </div>
-        <div class="nc-details" id="ncd_${i}">
-          <div class="nc-details-grid">
-            <select id="ncMode_${i}" onchange="questionStates[${i}].mode=this.value">
-              <option value="">— NC Category —</option>
-              ${NC_MODES.map(m => `<option value="${m}">${m}</option>`).join('')}
-            </select>
-            <input type="text" id="ncPIC_${i}" placeholder="Responsible Person" oninput="questionStates[${i}].pic=this.value">
-            <textarea id="ncDesc_${i}" placeholder="Finding description..." rows="2" oninput="questionStates[${i}].desc=this.value"></textarea>
-            <div>
-              <label class="img-upload-btn">📷 Add Photo
-                <input type="file" accept="image/*" style="display:none" onchange="handleImg(event,${i})">
-              </label>
-              <img id="imgPrev_${i}" style="max-width:60px;max-height:60px;border-radius:6px;display:none;margin-left:8px;">
-            </div>
+ let html = '';
+questions.forEach((q, i) => {
+  const qText = lang === 'IDN' ? (q.IDN || q.ENG || '') : (q.ENG || q.IDN || '');
+  const spec = q.Specification || q.Requirement || '';  // 🔥 TAMBAHKAN INI
+  
+  html += `
+    <div class="question-item" id="qi_${i}">
+      <div class="q-header">
+        <span class="q-clause">${q.Clause||''}</span>
+        <span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${q.Mode||''}</span>
+        <span class="q-text">${qText}</span>
+      </div>
+      ${spec ? `<div class="q-spec">📋 ${spec}</div>` : ''}  <!-- 🔥 TAMBAHKAN INI -->
+      <div class="q-actions">
+        <label class="q-check"><input type="checkbox" id="ok_${i}" onchange="toggleQ(${i},'ok')"> <span style="color:var(--success);font-weight:600;">✓ OK</span></label>
+        <label class="q-check"><input type="checkbox" id="nc_${i}" onchange="toggleQ(${i},'nc')"> <span style="color:var(--danger);font-weight:600;">✗ NC</span></label>
+        <label class="q-check"><input type="checkbox" id="na_${i}" onchange="toggleQ(${i},'na')"> <span style="color:var(--text-light);font-weight:600;">N/A</span></label>
+      </div>
+      <div class="nc-details" id="ncd_${i}">
+        <div class="nc-details-grid">
+          <select id="ncMode_${i}" onchange="questionStates[${i}].mode=this.value">
+            <option value="">— NC Category —</option>
+            ${NC_MODES.map(m => `<option value="${m}">${m}</option>`).join('')}
+          </select>
+          <input type="text" id="ncPIC_${i}" placeholder="Responsible Person" oninput="questionStates[${i}].pic=this.value">
+          <textarea id="ncDesc_${i}" placeholder="Finding description..." rows="2" oninput="questionStates[${i}].desc=this.value"></textarea>
+          <div>
+            <label class="img-upload-btn">📷 Add Photo
+              <input type="file" accept="image/*" style="display:none" onchange="handleImg(event,${i})">
+            </label>
+            <img id="imgPrev_${i}" style="max-width:60px;max-height:60px;border-radius:6px;display:none;margin-left:8px;">
           </div>
         </div>
-      </div>`;
-  });
-
+      </div>
+    </div>`;
+});
   document.getElementById('questionsWrap').innerHTML = html;
   document.getElementById('scoreFooter').style.display = 'block';
   updateScore();
