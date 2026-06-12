@@ -262,6 +262,7 @@
         <div class="form-field"><label>USW/CM Desc.</label><input type="text" id="fUSWDesc" placeholder="Ultrasonic Welding"></div>
         <div class="form-field"><label>Language</label><select id="fLang" onchange="renderQuestions()"><option value="ENG">English</option><option value="IDN">Bahasa Indonesia</option></select></div>
         <div class="form-field"><label>Auditee Name</label><input type="text" id="fAuditee" placeholder="Auditee name"></div>
+        <div class="form-field"><label>Customer</label><input type="text" id="fCustomer" placeholder="Customer name"></div>
       </div>
     </div>
     <div id="questionsWrap" class="questions-wrap"></div>
@@ -375,23 +376,23 @@ function mapQuestionRow(r) {
 
 function mapPlanRow(r) {
   return {
-    No:              r['No.']          || '',
-    PlanAudit:       r['PlanAudit']      || '',
-    Period:          r['Period']         || '',
-    USCAR:           r['USCAR']          || '',
-    Auditor:         r['Auditor']        || '',
-    Line:            r['Line']           || '',
-    Customer:        r['Customer']       || '',
-    ActualAudit:     r['ActualAudit']    || r['ActualAuditDate'] || '',
-    TotalNCs:        r['TotalNCs']       || r['TotalNC'] || 0,
-    StatusAudit:     r['StatusAudit']    || 'Open',
-    Remarks:         r['Remarks']        || '',
-    Auditee:         r['Auditee']        || '',
-    PartNo:          r['PartNo']         || '',
-    TotalApplicable: r['TotalApplicable']    || '',
+    No:              r['No.'] || '',
+    PlanAudit:       r['PlanAudit'] || '',
+    Period:          r['Period'] || '',
+    USCAR:           r['USCAR'] || '',
+    Auditor:         r['Auditor'] || '',
+    Line:            r['Line'] || '',
+    Customer:        r['Customer'] || '',  // ✅ Tambahkan ini
+    ActualAudit:     r['ActualAuditDate'] || r['ActualAudit'] || '',
+    TotalNC:         r['TotalNC'] || 0,
+    StatusAudit:     r['StatusAudit'] || 'Open',
+    Remarks:         r['Remarks'] || '',
+    Auditee:         r['Auditee'] || '',
+    PartNo:          r['PartNo'] || '',
+    TotalApplicable: r['TotalApplicable'] || '',
     TotalNotApplicable: r['TotalNotApplicable'] || '',
     TotalConformity: r['TotalConformity'] || r['TotalComformity'] || '',
-    OverallScore:    r['OverallScore']   || ''
+    OverallScore:    r['OverallScore'] || ''
   };
 }
 
@@ -937,28 +938,50 @@ async function submitAuditForm() {
     const s = questionStates[i];
     if (!s || !s.nc) continue;
     const q = questions[i];
+    
+    // 🔥 AMBIL DATA DARI FORM 🔥
+    const partNo     = document.getElementById('fPartNo').value;
+    const partDesc   = document.getElementById('fPartDesc').value;
+    const machineNo  = document.getElementById('fMachineNo').value;
+    const toolingNo  = document.getElementById('fToolingNo').value;
+    const awgDesc    = document.getElementById('fWireDesc').value;
+    const uswDesc    = document.getElementById('fUSWDesc').value;
+    const auditee    = document.getElementById('fAuditee').value;
+    
+    // ⚠️ CUSTOMER - Tambahkan field di HTML atau ambil dari currentPlanRow
+    const customer = currentPlanRow.Customer || document.getElementById('fCustomer')?.value || '';
+    
     const newNC = {
-      No:          nextId++,
-      Line:        currentPlanRow.Line   || '',
-      Layer:       currentPlanRow.Layer  || '',
-      USCAR:       uscarLabel,
-      PartNo:      document.getElementById('fPartNo').value,
-      PartDesc:    document.getElementById('fPartDesc').value,
-      AuditDate:   auditDate,
-      Auditor:     currentUser.Title,
-      Auditee:     document.getElementById('fAuditee').value,
-      MachineNo:   document.getElementById('fMachineNo').value,
-      ToolingNo:   document.getElementById('fToolingNo').value,
-      AWGWireDesc: document.getElementById('fWireDesc').value,
-      USWCMDesc:   document.getElementById('fUSWDesc').value,
-      Clause:      q.Clause || '',
-      NCCategory:  s.mode,
-      Period:      period,
-      FindingDesc: s.desc,
-      ResPerson:   s.pic,
-      TargetDate:  targetDate.toISOString().split('T')[0],
-      Status:      'Open'
+      // ✅ PASTIKAN NAMA KOLOM PERSIS SAMA DENGAN SHEET
+      'ID. No.':          nextId++,
+      'USCAR':            uscarLabel,
+      'Factory/site':     'Batam',
+      'LineNo.':          currentPlanRow.Line || '',
+      'Customer':         customer,
+      'PartNumber':       partNo,
+      'PartDesc.':        partDesc,
+      'AuditDate':        auditDate,
+      'Auditor':          currentUser.Title,
+      'MachineNo.':       machineNo,
+      'ToolingNo.':       toolingNo,
+      'AWG/WireDesc.':    awgDesc,
+      'USW/CMDesc.':      uswDesc,
+      'Clause':           q.Clause || '',
+      'NCCategory':       s.mode,
+      'Period':           period,
+      'FindingDescription': s.desc || '',
+      'NCPicture':        s.picSrc || '',
+      'ReactionProtocol': '',     // ⚠️ Akan diisi di follow-up
+      'RootCause':        '',     // ⚠️ Akan diisi di follow-up
+      'CorrectiveAction': '',     // ⚠️ Akan diisi di follow-up
+      'PICName':          s.pic || auditee,
+      'TargetDate':       targetDate.toISOString().split('T')[0],
+      'VerificationResult': '',   // ⚠️ Akan diisi di follow-up
+      'VerifiedBy':       '',     // ⚠️ Akan diisi di follow-up
+      'VerificationDate': '',     // ⚠️ Akan diisi di follow-up
+      'Status':           'Open'
     };
+    
     DB.summaryNC.push(newNC);
     if (APPS_SCRIPT_URL) {
       await postToScript('appendSummary', newNC);
@@ -972,18 +995,31 @@ async function submitAuditForm() {
     r.Auditor   === currentPlanRow.Auditor
   );
   if (planIdx >= 0) {
-    DB.auditPlan[planIdx].ActualAudit  = auditDate;
-    DB.auditPlan[planIdx].TotalNCs     = totalNC;
-    DB.auditPlan[planIdx].StatusAudit  = 'Done';
+    DB.auditPlan[planIdx].ActualAudit = auditDate;
+    DB.auditPlan[planIdx].TotalNC = totalNC;
+    DB.auditPlan[planIdx].StatusAudit = 'Done';
+    DB.auditPlan[planIdx].Auditee = document.getElementById('fAuditee').value;
+    DB.auditPlan[planIdx].PartNo = document.getElementById('fPartNo').value;
+    DB.auditPlan[planIdx].TotalApplicable = applicable;
+    DB.auditPlan[planIdx].TotalNotApplicable = vals.filter(v => v.na).length;
+    DB.auditPlan[planIdx].TotalConformity = totalOK;
+    DB.auditPlan[planIdx].OverallScore = score + '%';
   }
+  
   if (APPS_SCRIPT_URL) {
     await postToScript('updatePlanRow', {
       PlanAudit:   currentPlanRow.PlanAudit,
       Line:        currentPlanRow.Line,
       Auditor:     currentPlanRow.Auditor,
       ActualAudit: auditDate,
-      TotalNCs:    totalNC,
-      StatusAudit: 'Done'
+      TotalNC:     totalNC,
+      StatusAudit: 'Done',
+      Auditee:     document.getElementById('fAuditee').value,
+      PartNo:      document.getElementById('fPartNo').value,
+      TotalApplicable: applicable,
+      TotalNotApplicable: vals.filter(v => v.na).length,
+      TotalConformity: totalOK,
+      OverallScore: score + '%'
     });
   }
 
