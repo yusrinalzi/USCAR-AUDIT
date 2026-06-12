@@ -1212,11 +1212,22 @@ function showToast(msg, type) {
 }
 
   // ==================== FORM VALIDATION ====================
+function checkAndHighlight(input) {
+  if (!input) return;
+  const isEmpty = !input.value || input.value.trim() === '';
+  input.classList.remove('highlight-warning', 'highlight-success');
+  if (isEmpty) {
+    input.classList.add('highlight-warning');
+  } else {
+    input.classList.add('highlight-success');
+  }
+}
+
 function initFormValidation() {
   const formInputs = [
     'fPartNo', 'fPartDesc', 'fMachineNo', 
     'fToolingNo', 'fWireDesc', 'fUSWDesc', 'fAuditee',
-    'fCustomer'  // 🔥 TAMBAHKAN INI
+    'fCustomer'
   ];
   
   formInputs.forEach(inputId => {
@@ -1233,7 +1244,7 @@ function validateAllFields() {
   const requiredFields = [
     'fPartNo', 'fPartDesc', 'fMachineNo', 
     'fToolingNo', 'fWireDesc', 'fUSWDesc', 'fAuditee',
-    'fCustomer'  // 🔥 TAMBAHKAN INI
+    'fCustomer'
   ];
   
   let allFilled = true;
@@ -1241,7 +1252,7 @@ function validateAllFields() {
   
   requiredFields.forEach(fieldId => {
     const field = document.getElementById(fieldId);
-    if (field) {  // 🔥 TAMBAHKAN PENGECEKAN field !== null
+    if (field) {
       checkAndHighlight(field);
       if (!field.value || field.value.trim() === '') {
         allFilled = false;
