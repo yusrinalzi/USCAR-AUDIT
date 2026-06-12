@@ -929,7 +929,7 @@ async function submitAuditForm() {
   const targetDate = new Date(auditDate);
   targetDate.setDate(targetDate.getDate() + 15);
 
-  const uscarLabel = document.getElementById('fLayer').textContent;
+  const uscarLabel = document.getElementById('fUSCAR').textContent;
   const questions  = getQuestionsForUSCAR(uscarLabel);
   let nextId       = DB.summaryNC.length + 1;
 
@@ -994,7 +994,7 @@ async function submitAuditForm() {
   document.getElementById('questionsWrap').innerHTML = '';
   document.getElementById('scoreFooter').style.display = 'none';
   document.getElementById('fLine').textContent  = '—';
-  document.getElementById('fLayer').textContent = '—';
+  document.getElementById('fUSCAR').textContent = '—';
   currentPlanRow = null;
 
   buildCharts();
