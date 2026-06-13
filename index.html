@@ -181,7 +181,49 @@
   border-left: 3px solid var(--accent);
   white-space: pre-line;
 }
+/* ==================== LOADING SPINNER ==================== */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+}
 
+.loading-spinner {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.loading-spinner .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--bg2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px auto;
+}
+
+.loading-spinner p {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
   
 </style>
 </head>
@@ -965,132 +1007,145 @@ function updateScore() {
 }
 
 async function submitAuditForm() {
-  if (!currentPlanRow) { showToast('Please select an audit plan date first.', 'error'); return; }
+  if (!currentPlanRow) { 
+    showToast('Please select an audit plan date first.', 'error'); 
+    return; 
+  }
 
-  // 🔥 TAMBAHKAN INI - Validasi semua field sebelum submit
   if (!validateAllFields()) {
     return;
   }
   
-  const vals       = Object.values(questionStates);
-  const totalNC    = vals.filter(v => v.nc).length;
-  const totalOK    = vals.filter(v => v.ok).length;
-  const applicable = totalOK + totalNC;
-  const score      = applicable > 0 ? ((totalOK / applicable) * 100).toFixed(2) : 0;
-
-  const now        = new Date();
-  const period     = `${MONTHS[now.getMonth()]}-${String(now.getFullYear()).slice(2)}`;
-  const auditDate  = document.getElementById('fAuditDate').value || now.toISOString().split('T')[0];
-  const targetDate = new Date(auditDate);
-  targetDate.setDate(targetDate.getDate() + 15);
-
-  const uscarLabel = document.getElementById('fUSCAR').textContent;
-  const questions  = getQuestionsForUSCAR(uscarLabel);
-  let nextId       = DB.summaryNC.length + 1;
-
-  for (let i = 0; i < questions.length; i++) {
-    const s = questionStates[i];
-    if (!s || !s.nc) continue;
-    const q = questions[i];
-    
-    // 🔥 AMBIL DATA DARI FORM 🔥
-    const partNo     = document.getElementById('fPartNo').value;
-    const partDesc   = document.getElementById('fPartDesc').value;
-    const machineNo  = document.getElementById('fMachineNo').value;
-    const toolingNo  = document.getElementById('fToolingNo').value;
-    const awgDesc    = document.getElementById('fWireDesc').value;
-    const uswDesc    = document.getElementById('fUSWDesc').value;
-    const auditee    = document.getElementById('fAuditee').value;
-    
-    // ⚠️ CUSTOMER - Tambahkan field di HTML atau ambil dari currentPlanRow
-    const customer = currentPlanRow.Customer || document.getElementById('fCustomer')?.value || '';
-    
-    const newNC = {
-      // ✅ PASTIKAN NAMA KOLOM PERSIS SAMA DENGAN SHEET
-      'ID. No.':          nextId++,
-      'USCAR':            uscarLabel,
-      'Factory/site':     'Batam',
-      'LineNo.':          currentPlanRow.Line || '',
-      'Customer':         customer,
-      'PartNumber':       partNo,
-      'PartDesc.':        partDesc,
-      'AuditDate':        auditDate,
-      'Auditor':          currentUser.Title,
-      'MachineNo.':       machineNo,
-      'ToolingNo.':       toolingNo,
-      'AWG/WireDesc.':    awgDesc,
-      'USW/CMDesc.':      uswDesc,
-      'Clause':           q.Clause || '',
-      'NCCategory':       s.mode,
-      'Period':           period,
-      'FindingDescription': s.desc || '',
-      'NCPicture':        s.picSrc || '',
-      'ReactionProtocol': '',     // ⚠️ Akan diisi di follow-up
-      'RootCause':        '',     // ⚠️ Akan diisi di follow-up
-      'CorrectiveAction': '',     // ⚠️ Akan diisi di follow-up
-      'PICName':          s.pic || auditee,
-      'TargetDate':       targetDate.toISOString().split('T')[0],
-      'VerificationResult': '',   // ⚠️ Akan diisi di follow-up
-      'VerifiedBy':       '',     // ⚠️ Akan diisi di follow-up
-      'VerificationDate': '',     // ⚠️ Akan diisi di follow-up
-      'Status':           'Open'
-    };
-    
-    DB.summaryNC.push(newNC);
-    if (APPS_SCRIPT_URL) {
-      await postToScript('appendSummary', newNC);
-    }
-  }
-
-  // Update plan row status
-  const planIdx = DB.auditPlan.findIndex(r =>
-    r.PlanAudit === currentPlanRow.PlanAudit &&
-    r.Line      === currentPlanRow.Line &&
-    r.Auditor   === currentPlanRow.Auditor
-  );
-  if (planIdx >= 0) {
-    DB.auditPlan[planIdx].ActualAudit = auditDate;
-    DB.auditPlan[planIdx].TotalNC = totalNC;
-    DB.auditPlan[planIdx].StatusAudit = 'Done';
-    DB.auditPlan[planIdx].Auditee = document.getElementById('fAuditee').value;
-    DB.auditPlan[planIdx].PartNo = document.getElementById('fPartNo').value;
-    DB.auditPlan[planIdx].TotalApplicable = applicable;
-    DB.auditPlan[planIdx].TotalNotApplicable = vals.filter(v => v.na).length;
-    DB.auditPlan[planIdx].TotalConformity = totalOK;
-    DB.auditPlan[planIdx].OverallScore = score + '%';
-  }
+  // 🔥 TAMPILKAN LOADING
+  showLoading('Submitting audit report...');
   
-  if (APPS_SCRIPT_URL) {
-    await postToScript('updatePlanRow', {
-      PlanAudit:   currentPlanRow.PlanAudit,
-      Line:        currentPlanRow.Line,
-      Auditor:     currentPlanRow.Auditor,
-      ActualAudit: auditDate,
-      TotalNC:     totalNC,
-      StatusAudit: 'Done',
-      Auditee:     document.getElementById('fAuditee').value,
-      PartNo:      document.getElementById('fPartNo').value,
-      TotalApplicable: applicable,
-      TotalNotApplicable: vals.filter(v => v.na).length,
-      TotalConformity: totalOK,
-      OverallScore: score + '%'
-    });
+  try {
+    const vals       = Object.values(questionStates);
+    const totalNC    = vals.filter(v => v.nc).length;
+    const totalOK    = vals.filter(v => v.ok).length;
+    const applicable = totalOK + totalNC;
+    const score      = applicable > 0 ? ((totalOK / applicable) * 100).toFixed(2) : 0;
+
+    const now        = new Date();
+    const period     = `${MONTHS[now.getMonth()]}-${String(now.getFullYear()).slice(2)}`;
+    const auditDate  = document.getElementById('fAuditDate').value || now.toISOString().split('T')[0];
+    const targetDate = new Date(auditDate);
+    targetDate.setDate(targetDate.getDate() + 15);
+
+    const uscarLabel = document.getElementById('fUSCAR').textContent;
+    const questions  = getQuestionsForUSCAR(uscarLabel);
+    let nextId       = DB.summaryNC.length + 1;
+
+    for (let i = 0; i < questions.length; i++) {
+      const s = questionStates[i];
+      if (!s || !s.nc) continue;
+      const q = questions[i];
+      
+      // Update loading message
+      showLoading(`Submitting NC #${nextId - DB.summaryNC.length + 1}...`);
+      
+      const partNo     = document.getElementById('fPartNo').value;
+      const partDesc   = document.getElementById('fPartDesc').value;
+      const machineNo  = document.getElementById('fMachineNo').value;
+      const toolingNo  = document.getElementById('fToolingNo').value;
+      const awgDesc    = document.getElementById('fWireDesc').value;
+      const uswDesc    = document.getElementById('fUSWDesc').value;
+      const auditee    = document.getElementById('fAuditee').value;
+      const customer = currentPlanRow.Customer || document.getElementById('fCustomer')?.value || '';
+      
+      const newNC = {
+        'ID. No.':          nextId++,
+        'USCAR':            uscarLabel,
+        'Factory/site':     'Batam',
+        'LineNo.':          currentPlanRow.Line || '',
+        'Customer':         customer,
+        'PartNumber':       partNo,
+        'PartDesc.':        partDesc,
+        'AuditDate':        auditDate,
+        'Auditor':          currentUser.Title,
+        'MachineNo.':       machineNo,
+        'ToolingNo.':       toolingNo,
+        'AWG/WireDesc.':    awgDesc,
+        'USW/CMDesc.':      uswDesc,
+        'Clause':           q.Clause || '',
+        'NCCategory':       s.mode,
+        'Period':           period,
+        'FindingDescription': s.desc || '',
+        'NCPicture':        s.picSrc || '',
+        'ReactionProtocol': '',
+        'RootCause':        '',
+        'CorrectiveAction': '',
+        'PICName':          s.pic || auditee,
+        'TargetDate':       targetDate.toISOString().split('T')[0],
+        'VerificationResult': '',
+        'VerifiedBy':       '',
+        'VerificationDate': '',
+        'Status':           'Open'
+      };
+      
+      DB.summaryNC.push(newNC);
+      if (APPS_SCRIPT_URL) {
+        await postToScript('appendSummary', newNC);
+      }
+    }
+
+    // Update plan row status
+    const planIdx = DB.auditPlan.findIndex(r =>
+      r.PlanAudit === currentPlanRow.PlanAudit &&
+      r.Line      === currentPlanRow.Line &&
+      r.Auditor   === currentPlanRow.Auditor
+    );
+    if (planIdx >= 0) {
+      DB.auditPlan[planIdx].ActualAudit = auditDate;
+      DB.auditPlan[planIdx].TotalNC = totalNC;
+      DB.auditPlan[planIdx].StatusAudit = 'Done';
+      DB.auditPlan[planIdx].Auditee = document.getElementById('fAuditee').value;
+      DB.auditPlan[planIdx].PartNo = document.getElementById('fPartNo').value;
+      DB.auditPlan[planIdx].TotalApplicable = applicable;
+      DB.auditPlan[planIdx].TotalNotApplicable = vals.filter(v => v.na).length;
+      DB.auditPlan[planIdx].TotalConformity = totalOK;
+      DB.auditPlan[planIdx].OverallScore = score + '%';
+    }
+    
+    if (APPS_SCRIPT_URL) {
+      showLoading('Updating audit plan...');
+      await postToScript('updatePlanRow', {
+        PlanAudit:   currentPlanRow.PlanAudit,
+        Line:        currentPlanRow.Line,
+        Auditor:     currentPlanRow.Auditor,
+        ActualAudit: auditDate,
+        TotalNC:     totalNC,
+        StatusAudit: 'Done',
+        Auditee:     document.getElementById('fAuditee').value,
+        PartNo:      document.getElementById('fPartNo').value,
+        TotalApplicable: applicable,
+        TotalNotApplicable: vals.filter(v => v.na).length,
+        TotalConformity: totalOK,
+        OverallScore: score + '%'
+      });
+    }
+
+    hideLoading();
+    showToast(`Audit submitted! ${totalNC} NC(s) recorded. Score: ${score}%`, 'success');
+
+    // Reset form
+    document.getElementById('fDate').value = '';
+    document.getElementById('questionsWrap').innerHTML = '';
+    document.getElementById('scoreFooter').style.display = 'none';
+    document.getElementById('fLine').textContent  = '—';
+    document.getElementById('fUSCAR').textContent = '—';
+    currentPlanRow = null;
+
+    buildCharts();
+    populateFilters();
+    renderFollowup();
+    setupAuditForm();
+    
+  } catch (error) {
+    hideLoading();
+    showToast('Error submitting audit: ' + error.message, 'error');
+    console.error('Submit error:', error);
   }
-
-  showToast(`Audit submitted! ${totalNC} NC(s) recorded. Score: ${score}%`, 'success');
-
-  // Reset form
-  document.getElementById('fDate').value = '';
-  document.getElementById('questionsWrap').innerHTML = '';
-  document.getElementById('scoreFooter').style.display = 'none';
-  document.getElementById('fLine').textContent  = '—';
-  document.getElementById('fUSCAR').textContent = '—';
-  currentPlanRow = null;
-
-  buildCharts();
-  populateFilters();
-  renderFollowup();
-  setupAuditForm();
 }
 
 // ==================== FOLLOW-UP ====================
@@ -1437,6 +1492,35 @@ function showAuditPlanDetail(status) {
   panel.style.display = 'block';
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ==================== LOADING INDICATOR ====================
+function showLoading(message = 'Uploading data to Google Sheets...') {
+  let overlay = document.getElementById('loadingOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p id="loadingMessage">${message}</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = 'flex';
+    const msgEl = document.getElementById('loadingMessage');
+    if (msgEl) msgEl.textContent = message;
+  }
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
   
 </script>
 </body>
