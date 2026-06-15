@@ -344,7 +344,6 @@
         <div class="form-field"><label>Machine No.</label><input type="text" id="fMachineNo" placeholder="Machine number"></div>
         <div class="form-field"><label>Tooling No.</label><input type="text" id="fToolingNo" placeholder="Tooling number"></div>
         <div class="form-field"><label>USW/CM Desc.</label><input type="text" id="fUSWDesc" placeholder="Ultrasonic Welding"></div>
-        <div class="form-field"><label>Language</label><select id="fLang" onchange="renderQuestions()"><option value="ENG">English</option><option value="IDN">Bahasa Indonesia</option></select></div>
         <div class="form-field"><label>Auditee Name</label><input type="text" id="fAuditee" placeholder="Auditee name"></div>
         <div class="form-field"><label>Customer</label><input type="text" id="fCustomer" placeholder="Customer name"></div>
       </div>
@@ -431,7 +430,7 @@ let donutChart     = null;  // 🔥 TAMBAHKAN INI
 let activeLayer    = 'All';
 
 // ==================== APPS SCRIPT ====================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNEnwzDyCzu8dw5wfhW2_mozAm3xJyjvEtPTmy7jhhk4ifTBUqpCEnkX2_KQAtE4YL/exec'; // Set your deployed Apps Script URL here
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxd3w_-HLGR-EvN8yZd2YCJ9MoKwuUNygLIoSIeJKdnuhGPQ5fvujdMUj70x6pNYCiT/exec'; // Set your deployed Apps Script URL here
 
 // ==================== DATA MAPPERS ====================
 function mapAuditorRow(r) {
@@ -722,11 +721,11 @@ function buildKPICards() {
   const filterLabel = activeLayer === 'All' ? 'All USCARs' : activeLayer;
 
   const kpis = [
-    { val: totalNC,       lbl: 'Total NC',         sub: filterLabel,                                                         color: '#c0392b', bg: '#fdf1f0' },
-    { val: closedNC,      lbl: 'NC Closed',         sub: `from ${totalNC} NC`,                                                color: '#27ae60', bg: '#f1fdf5' },
-    { val: pctNC + '%',   lbl: '% NC Closed',       sub: pctNC>=80?'✅ Good':pctNC>=50?'⚠️ Fair':'🔴 Needs Attention',        color: pctNC>=80?'#27ae60':pctNC>=50?'#f39c12':'#c0392b', bg: '#f9f9f9' },
-    { val: totalPlan,     lbl: 'Total Audit Plan',  sub: filterLabel,                                                         color: '#02453c', bg: '#f0f5f4' },
-    { val: donePlan,      lbl: 'Audit Done',        sub: `from ${totalPlan} plan`,                                            color: '#04a086', bg: '#f0faf8' }
+    { val: totalNC, lbl: 'Total NC', sub: filterLabel, color: '#c0392b', bg: '#fdf1f0' },
+    { val: `${closedNC} (${pctNC}%)`, lbl: 'NC CLOSE', sub: `from ${totalNC} NC`, color: '#27ae60', bg: '#f1fdf5'},
+    { val: totalPlan, lbl: 'Total Audit Plan', sub: filterLabel, color: '#02453c', bg: '#f0f5f4' },
+    { val: `${donePlan} (${pctDone}%)`, lbl: 'AUDIT DONE', sub: `from ${totalPlan} plan`, color: '#04a086', bg: '#f0faf8' 
+    },
   ];
 
   document.getElementById('kpiCards').innerHTML = kpis.map(k => `
@@ -737,6 +736,7 @@ function buildKPICards() {
     </div>`).join('');
 }
 
+// ==================== CHARTS ====================
 // ==================== CHARTS ====================
 function buildCharts() {
   buildKPICards();
@@ -750,14 +750,18 @@ function buildCharts() {
     const d = parsePeriod(r.Period);
     if (!d) return;
     const k = fmtPeriod(d);
-    if (!ncByPeriod[k]) ncByPeriod[k] = { total: 0, closed: 0 };
+    if (!ncByPeriod[k]) ncByPeriod[k] = { total: 0, closed: 0, open: 0 };  // ✅ Tambah properti 'open'
     ncByPeriod[k].total++;
-    if ((r.Status||'').toLowerCase() === 'closed') ncByPeriod[k].closed++;
+    if ((r.Status||'').toLowerCase() === 'closed') {
+      ncByPeriod[k].closed++;
+    } else {
+      ncByPeriod[k].open++;  // ✅ Hitung NC yang open
+    }
   });
   const ncPeriods = sortPeriods(Object.keys(ncByPeriod));
 
   // Destroy old chart
-  if (mainChart) { mainChart.destroy(); mainChart = null; }
+  if (mainChart) mainChart.destroy(); 
 
   const ctx = document.getElementById('MainChart').getContext('2d');
   mainChart = new Chart(ctx, {
@@ -765,36 +769,60 @@ function buildCharts() {
     data: {
       labels: ncPeriods,
       datasets: [
-        {
-          label: 'Total NC',
-          data: ncPeriods.map(p => ncByPeriod[p].total),
-          backgroundColor: 'rgba(192,57,43,0.75)',
-          borderColor: '#c0392b',
-          borderWidth: 1
+        { 
+          label: 'NC Closed', 
+          data: ncPeriods.map(p => ncByPeriod[p].closed), 
+          backgroundColor: '#27ae60',
+          borderColor: '#1e8449',
+          borderWidth: 1,
+          stack: 'stack1'
         },
-        {
-          label: 'Closed',
-          data: ncPeriods.map(p => ncByPeriod[p].closed),
-          backgroundColor: 'rgba(39,174,96,0.75)',
-          borderColor: '#27ae60',
-          borderWidth: 1
+        { 
+          label: 'NC Open', 
+          data: ncPeriods.map(p => ncByPeriod[p].open),  // ✅ Sekarang properti 'open' sudah ada
+          backgroundColor: '#e74c3c',
+          borderColor: '#c0392b',
+          borderWidth: 1,
+          stack: 'stack1'
         }
       ]
     },
     options: {
-      responsive: true,
+      responsive: true, 
       maintainAspectRatio: false,
-      onClick: (e, els) => {
-        if (els.length > 0) showNCDetail(ncPeriods[els[0].index], ncData);
+      onClick: (event, activeElements) => { 
+        if (activeElements.length > 0) {
+          // Ambil index dari data point yang diklik
+          const dataIndex = activeElements[0].index;
+          if (dataIndex !== undefined && ncPeriods[dataIndex]) {
+            showNCDetail(ncPeriods[dataIndex], ncData);
+          }
+        }
       },
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: { callbacks: { footer: () => 'Click bar to see details' } }
+      plugins: { 
+        legend: { position: 'bottom' }, 
+        tooltip: { 
+          callbacks: { 
+            footer: (tooltipItems) => {
+              const period = ncPeriods[tooltipItems[0].dataIndex];
+              const total = ncByPeriod[period].total;
+              return `Total NC: ${total}`;
+            }
+          }
+        }
       },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-    }
-  });
-}
+      scales: { 
+        y: { 
+          beginAtZero: true,
+          stacked: true
+        },
+        x: {
+          stacked: true
+        }
+      }
+    }  // ✅ Tutup options
+  });  // ✅ Tutup Chart constructor
+}  // ✅ Tutup function buildCharts
 
 // ==================== DETAIL PANEL ====================
 function showNCDetail(period, ncData) {
@@ -897,8 +925,7 @@ function getQuestionsForUSCAR(uscarLabel) {
 
 function renderQuestions() {
   const uscarLabel = document.getElementById('fUSCAR').textContent;
-  const lang       = document.getElementById('fLang').value;
-
+  
   if (!uscarLabel || uscarLabel === '—') {
     document.getElementById('questionsWrap').innerHTML = '<p style="color:var(--text-light);padding:16px;">Please select a plan date first.</p>';
     return;
@@ -912,45 +939,45 @@ function renderQuestions() {
 
   questionStates = {};
   questions.forEach((_, i) => {
-    questionStates[i] = { ok: false, nc: false, mode: '', pic: '', desc: '', picSrc: '' };
+    questionStates[i] = { ok: false, notOk: false, mode: '', pic: '', desc: '', picSrc: '' }; // HAPUS 'na'
   });
 
- let html = '';
-questions.forEach((q, i) => {
-  const qText = lang === 'IDN' ? (q.IDN || q.ENG || '') : (q.ENG || q.IDN || '');
-  const spec = q.Specification || q.Requirement || '';  // 🔥 TAMBAHKAN INI
-  
-  html += `
-    <div class="question-item" id="qi_${i}">
-      <div class="q-header">
-        <span class="q-clause">${q.Clause||''}</span>
-        <span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${q.Mode||''}</span>
-        <span class="q-text">${qText}</span>
+  let html = '';
+  questions.forEach((q, i) => {
+    const qText = q.ENG || q.IDN || '';
+    const spec = q.Specification || q.Requirement || '';
+    
+    html += `
+      <div class="question-item" id="qi_${i}">
+        <div class="q-header">
+          <span class="q-clause">${q.Clause||''}</span>
+          <span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${q.Mode||''}</span>
+          <span class="q-text">${qText}</span>
+        </div>
+        ${spec ? `<div class="q-spec">📋 ${spec}</div>` : ''}
+              <div class="q-actions">
+          <label class="q-check"><input type="checkbox" id="ok_${i}" onchange="toggleQ(${i},'ok')"> <span style="color:var(--success);font-weight:600;">✓ OK</span></label>
+          <label class="q-check"><input type="checkbox" id="notOk_${i}" onchange="toggleQ(${i},'notOk')"> <span style="color:var(--danger);font-weight:600;">✗ Not OK</span></label>
       </div>
-      ${spec ? `<div class="q-spec">📋 ${spec}</div>` : ''}  <!-- 🔥 TAMBAHKAN INI -->
-      <div class="q-actions">
-        <label class="q-check"><input type="checkbox" id="ok_${i}" onchange="toggleQ(${i},'ok')"> <span style="color:var(--success);font-weight:600;">✓ OK</span></label>
-        <label class="q-check"><input type="checkbox" id="nc_${i}" onchange="toggleQ(${i},'nc')"> <span style="color:var(--danger);font-weight:600;">✗ NC</span></label>
-        <label class="q-check"><input type="checkbox" id="na_${i}" onchange="toggleQ(${i},'na')"> <span style="color:var(--text-light);font-weight:600;">N/A</span></label>
-      </div>
-      <div class="nc-details" id="ncd_${i}">
-        <div class="nc-details-grid">
-          <select id="ncMode_${i}" onchange="questionStates[${i}].mode=this.value">
-            <option value="">— NC Category —</option>
-            ${NC_MODES.map(m => `<option value="${m}">${m}</option>`).join('')}
-          </select>
-          <input type="text" id="ncPIC_${i}" placeholder="Responsible Person" oninput="questionStates[${i}].pic=this.value">
-          <textarea id="ncDesc_${i}" placeholder="Finding description..." rows="2" oninput="questionStates[${i}].desc=this.value"></textarea>
-          <div>
-            <label class="img-upload-btn">📷 Add Photo
-              <input type="file" accept="image/*" style="display:none" onchange="handleImg(event,${i})">
-            </label>
-            <img id="imgPrev_${i}" style="max-width:60px;max-height:60px;border-radius:6px;display:none;margin-left:8px;">
+        <div class="nc-details" id="ncd_${i}">
+          <div class="nc-details-grid">
+            <select id="ncMode_${i}" onchange="questionStates[${i}].mode=this.value">
+              <option value="">— NC Category —</option>
+              ${NC_MODES.map(m => `<option value="${m}">${m}</option>`).join('')}
+            </select>
+            <input type="text" id="ncPIC_${i}" placeholder="Responsible Person" oninput="questionStates[${i}].pic=this.value">
+            <textarea id="ncDesc_${i}" placeholder="Finding description..." rows="2" oninput="questionStates[${i}].desc=this.value"></textarea>
+            <div>
+              <label class="img-upload-btn">📷 Add Photo
+                <input type="file" accept="image/*" style="display:none" onchange="handleImg(event,${i})">
+              </label>
+              <img id="imgPrev_${i}" style="max-width:60px;max-height:60px;border-radius:6px;display:none;margin-left:8px;">
+            </div>
           </div>
         </div>
-      </div>
-    </div>`;
-});
+      </div>`;
+  });
+  
   document.getElementById('questionsWrap').innerHTML = html;
   document.getElementById('scoreFooter').style.display = 'block';
   updateScore();
@@ -958,22 +985,23 @@ questions.forEach((q, i) => {
 
 function toggleQ(i, type) {
   const okCb = document.getElementById(`ok_${i}`);
-  const ncCb = document.getElementById(`nc_${i}`);
-  const naCb = document.getElementById(`na_${i}`);
+  const notOkCb = document.getElementById(`notOk_${i}`);
   const ncd  = document.getElementById(`ncd_${i}`);
   const qi   = document.getElementById(`qi_${i}`);
 
   // Mutual exclusion
-  if (type === 'ok') { ncCb.checked = false; naCb.checked = false; }
-  if (type === 'nc') { okCb.checked = false; naCb.checked = false; }
-  if (type === 'na') { okCb.checked = false; ncCb.checked = false; }
+  if (type === 'ok') { 
+    notOkCb.checked = false; 
+  }
+  if (type === 'notOk') { 
+    okCb.checked = false; 
+  }
 
   questionStates[i].ok = okCb.checked;
-  questionStates[i].nc = ncCb.checked;
-  questionStates[i].na = naCb.checked;
+  questionStates[i].notOk = notOkCb.checked;
 
-  qi.className = 'question-item' + (okCb.checked ? ' ok' : ncCb.checked ? ' nc' : '');
-  ncd.className = 'nc-details' + (ncCb.checked ? ' show' : '');
+  qi.className = 'question-item' + (okCb.checked ? ' ok' : notOkCb.checked ? ' nc' : '');
+  ncd.className = 'nc-details' + (notOkCb.checked ? ' show' : '');
   updateScore();
 }
 
@@ -994,16 +1022,15 @@ function handleImg(event, i) {
 function updateScore() {
   const vals       = Object.values(questionStates);
   const okCount    = vals.filter(v => v.ok).length;
-  const ncCount    = vals.filter(v => v.nc).length;
-  const naCount    = vals.filter(v => v.na).length;
-  const applicable = okCount + ncCount;
+  const notOkCount = vals.filter(v => v.notOk).length;
+  const applicable = okCount + notOkCount;
   const score      = applicable > 0 ? Math.round((okCount / applicable) * 100) : 0;
 
   document.getElementById('sApplicable').textContent = applicable;
-  document.getElementById('sNA').textContent         = naCount;
-  document.getElementById('sOK').textContent         = okCount;
-  document.getElementById('sNC').textContent         = ncCount;
-  document.getElementById('sScore').textContent      = score + '%';
+  document.getElementById('sNA').textContent = '0';
+  document.getElementById('sOK').textContent = okCount;
+  document.getElementById('sNC').textContent = notOkCount;
+  document.getElementById('sScore').textContent = score + '%';
 }
 
 async function submitAuditForm() {
@@ -1021,7 +1048,7 @@ async function submitAuditForm() {
   
   try {
     const vals       = Object.values(questionStates);
-    const totalNC    = vals.filter(v => v.nc).length;
+    const totalNotOk = vals.filter(v => v.notOk).length;
     const totalOK    = vals.filter(v => v.ok).length;
     const applicable = totalOK + totalNC;
     const score      = applicable > 0 ? ((totalOK / applicable) * 100).toFixed(2) : 0;
@@ -1097,7 +1124,7 @@ async function submitAuditForm() {
     );
     if (planIdx >= 0) {
       DB.auditPlan[planIdx].ActualAudit = auditDate;
-      DB.auditPlan[planIdx].TotalNC = totalNC;
+      DB.auditPlan[planIdx].TotalNC = totalNotOk;
       DB.auditPlan[planIdx].StatusAudit = 'Done';
       DB.auditPlan[planIdx].Auditee = document.getElementById('fAuditee').value;
       DB.auditPlan[planIdx].PartNo = document.getElementById('fPartNo').value;
@@ -1114,7 +1141,7 @@ async function submitAuditForm() {
         Line:        currentPlanRow.Line,
         Auditor:     currentPlanRow.Auditor,
         ActualAudit: auditDate,
-        TotalNC:     totalNC,
+        TotalNC:     totalNotOk,
         StatusAudit: 'Done',
         Auditee:     document.getElementById('fAuditee').value,
         PartNo:      document.getElementById('fPartNo').value,
